@@ -10,8 +10,76 @@
 
 import { AVERROR_EAGAIN, AVERROR_EOF, IOContext, Packet } from "node-av";
 import { cleanup, filter_encode_write_frame, flush_encoder, init_filters, open_input_file, open_output_file, TranscodeContext } from "../utils/transcode";
-import fs from 'fs/promises';
+import fsPromises from 'fs/promises';
+import { createWriteStream, WriteStream } from 'fs';
+import { Writable } from "stream";
 
+/**
+ * A custom Writable stream that writes data to a series of files,
+ * rotating to a new file based on a time interval (default 10 seconds).
+ */
+class RotatingWritableStream extends Writable {
+    // @ts-ignore
+    currentWriteStream: WriteStream;
+    lastTimestamp: number;
+
+
+    constructor(public baseName = 'out', public extension = 'mp4', public rotationIntervalMs = 20000, options = {}) {
+        // The Writable stream's constructor is called first
+        super(options);
+        this.lastTimestamp = -1; // Initialize to -1 to ensure the first write triggers a rotation
+    }
+
+    _maybeCloseAndOpenNewStream() {
+        if (this.currentWriteStream) this.currentWriteStream.end();
+        const newPath = `${this.baseName}_${this.lastTimestamp}.${this.extension}`;
+        this.currentWriteStream = createWriteStream(newPath, { flags: 'a' });
+    }
+
+    maybeRotate() {
+        const now = Date.now();
+        const elapsed = now - this.lastTimestamp;
+        const needRotate = elapsed > this.rotationIntervalMs;
+        if (needRotate) {
+            this.lastTimestamp = now;
+            this._maybeCloseAndOpenNewStream();
+        }
+
+        return needRotate;
+    }
+
+    /**
+ * The essential method for a Writable stream. It's called for every chunk of data.
+ * @param chunk - The data chunk to write.
+ * @param encoding - The encoding of the chunk (ignored for buffers).
+ * @param callback - Function to call when the write is complete.
+     */
+    _write(chunk: Buffer, encoding: string, callback: (error?: Error | null) => void) {
+        const writeSuccessful = this.currentWriteStream.write(chunk);
+
+        if (writeSuccessful) {
+            // If write was successful, call the callback immediately
+            setImmediate(() => callback(null));
+        } else {
+            // Handle backpressure from the underlying file stream
+            this.currentWriteStream.once('drain', () => {
+                callback(null);
+            });
+        }
+    }
+
+    /**
+     * Optional: Method called when .end() is called on the stream.
+     * Ensure the final file stream is closed.
+     */
+    _final(callback: (error?: Error | null) => void) {
+        if (this.currentWriteStream) {
+            this.currentWriteStream.end(callback);
+        } else {
+            callback();
+        }
+    }
+}
 
 async function transcode(input_file: string): Promise<number> {
     let ret: number;
@@ -20,20 +88,47 @@ async function transcode(input_file: string): Promise<number> {
     packet.alloc();
 
     try {
-        const fd = await fs.open('output.mp4', 'w');
-        const writeStream = fd.createWriteStream();
+        const state: any = {};
+        // Create the rotating writable stream with 10-second rotation interval
+        const rotatingStream = new RotatingWritableStream('output', 'mp4');
+
         // Create IO context
         const io_ctx = new IOContext();
-        // ret = await io_ctx.open2(filename, AVIO_FLAG_WRITE);
+        let receivedBigChunk = false;
+        let header: Buffer[] = []
+        // Write callback must be synchronous and return bytes written
         io_ctx.allocContextWithCallbacks(
             4096,  // Buffer size
             1,     // Write mode
             null,
             (buffer) => {
-                console.log('Write callback', buffer.byteLength);
-                writeStream.write(buffer);
+                // console.log('Write callback', buffer.byteLength);
+
+                // HACK: to capture header
+                if (buffer.byteLength < 4096) {
+                    if (!receivedBigChunk) {
+                        header.push(buffer);
+                        // Header will be written on first maybeRotate call
+                        // Which is triggered on first non-header chunk
+                        return buffer.byteLength;
+                    }
+                } else {
+                    receivedBigChunk = true;
+                }
+
+                // First non-header chunk
+                // Check if we need to rotate (this will also create the first file)
+                const rotated = rotatingStream.maybeRotate();
+                if (rotated) {
+                    // Replicate header on every rotation
+                    const headerChunk = Buffer.from(header.reduce((a, b) => Buffer.concat([a, b]), Buffer.alloc(0)));
+                    rotatingStream.write(headerChunk);
+                }
+
+                const chunk = Buffer.from(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+                rotatingStream.write(chunk);
                 return buffer.byteLength;
-            },  // No write callback for read mode
+            },
             null
         );
 
@@ -56,6 +151,7 @@ async function transcode(input_file: string): Promise<number> {
         }
 
         const ofmt_ctx = outputResult.ctx;
+        state.ofmt_ctx = ofmt_ctx;
 
         // Initialize filters
         const filterResult = await init_filters(ifmt_ctx, stream_ctx);
@@ -172,6 +268,10 @@ async function transcode(input_file: string): Promise<number> {
         }
 
         await ofmt_ctx.writeTrailer();
+
+        // Properly end the rotating stream
+        rotatingStream.end();
+
         return 0;
     } finally {
         // Cleanup resources
