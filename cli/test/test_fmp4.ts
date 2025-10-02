@@ -1,5 +1,6 @@
 import { MediaInput, MediaOutput, Packet } from 'node-av';
 import fs from 'fs/promises';
+import RotatingWritable from '../utils/RotatingWritable';
 
 // Here, we just skip negative or non-monotonic timestamps
 // TODO: provide a fallback re-timestamping mechanism (assume 25fps for example) if needed, after waiting for a long time and still does not receive a valid packet 
@@ -16,10 +17,10 @@ function shouldSkipPacket(packet: Packet, prev?: Packet) {
  * @param {string} inputUrl The URL of the input RTSP stream.
  * @param {string} outputUrl The path where the fMP4 file will be saved.
  */
-export async function remuxRtspToFmp4(inputUrl: string, outputUrl:string) {
+export async function remuxRtspToFmp4(inputUrl: string, outputUrl: string) {
     const inputOptions = {
         options: {
-            fflags: '+genpts+nobuffer'
+            fflags: '+genpts'
         }
     };
 
@@ -32,17 +33,43 @@ export async function remuxRtspToFmp4(inputUrl: string, outputUrl:string) {
     if (!videoStream) throw new Error("No video stream found in the input");
 
     // --- OUTPUT SETUP ---
-    const fd = await fs.open(outputUrl, 'w');
+    const rotatingStream = new RotatingWritable('output', 'mp4');
+    let receivedBigChunk = false;
+    let header: Buffer[] = []
     await using output = await MediaOutput.open({
-        write(buffer){
-            console.log(`Writing ${buffer.byteLength} bytes to ${outputUrl}`);
-            fd.write(buffer);
+        write(buffer) {
+            // HACK: to capture header
+            if (buffer.byteLength < 4096) {
+                if (!receivedBigChunk) {
+                    header.push(buffer);
+                    // Header will be written on first maybeRotate call
+                    // Which is triggered on first non-header chunk
+                    return buffer.byteLength;
+                }
+            } else {
+                receivedBigChunk = true;
+            }
+
+            // First non-header chunk
+            // Check if we need to rotate (this will also create the first file)
+            const rotated = rotatingStream.maybeRotate();
+            if (rotated) {
+                // Replicate header on every rotation
+                const headerChunk = Buffer.from(header.reduce((a, b) => Buffer.concat([a, b]), Buffer.alloc(0)));
+                rotatingStream.write(headerChunk);
+            }
+
+            const chunk = Buffer.from(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+            rotatingStream.write(chunk);
             return buffer.byteLength;
         }
     }, {
         format: 'mp4',
     });
-    output.getFormatContext().setOption('movflags', 'frag_keyframe+empty_moov+default_base_moof+faststart+dash');
+
+    console.log('video codec:', videoStream.codecpar.codecId);
+
+    output.getFormatContext().setOption('movflags', 'frag_keyframe+empty_moov+default_base_moof+frag_every_frame+omit_tfhd_offset');
 
     console.log("Setting up streams for copying (remuxing)...");
     const videoIdx = output.addStream(videoStream);
@@ -64,14 +91,13 @@ export async function remuxRtspToFmp4(inputUrl: string, outputUrl:string) {
             prevVideoPacket = packet;
 
             try {
-                console.log(`Writing video packet PTS:${packet.pts} DTS:${packet.dts}`);
                 await output.writePacket(packet, videoIdx);
             } catch (err) {
                 console.error("Error writing video packet:", err);
             }
         } else if (audioStream && packet.streamIndex === audioStream.index) {
             const shouldSkip = shouldSkipPacket(packet, prevAudioPacket);
-            
+
             if (shouldSkip) {
                 console.warn(`Skipping audio packet with invalid timestamps PTS:${packet.pts} DTS:${packet.dts}`);
                 continue;
@@ -80,7 +106,6 @@ export async function remuxRtspToFmp4(inputUrl: string, outputUrl:string) {
             prevAudioPacket = packet;
 
             try {
-                console.log(`Writing audio packet PTS:${packet.pts} DTS:${packet.dts}`);
                 await output.writePacket(packet, audioIdx);
             } catch (err) {
                 console.error("Error writing audio packet:", err);
@@ -93,7 +118,7 @@ export async function remuxRtspToFmp4(inputUrl: string, outputUrl:string) {
 
 // Run the remuxing function
 await remuxRtspToFmp4(
-    // 'rtsp://rtspstream:UIw_5_upePzZtQxZayncA@zephyr.rtsp.stream/movie',
-    'http://200.46.196.243/axis-cgi/media.cgi?camera=1&videoframeskipmode=empty&videozprofile=classic&resolution=1280x720&audiodeviceid=0&audioinputid=0&audiocodec=aac&audiosamplerate=16000&audiobitrate=32000&timestamp=0&videocodec=h264&container=mp4',
+    'rtsp://www.cactus.tv:1554/cam58',
+    // 'http://200.46.196.243/axis-cgi/media.cgi?camera=1&videoframeskipmode=empty&videozprofile=classic&resolution=1280x720&audiodeviceid=0&audioinputid=0&audiocodec=aac&audiosamplerate=16000&audiobitrate=32000&timestamp=0&videocodec=h264&container=mp4',
     'output.mp4'
 );

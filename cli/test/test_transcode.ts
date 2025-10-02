@@ -13,73 +13,8 @@ import { cleanup, filter_encode_write_frame, flush_encoder, init_filters, open_i
 import fsPromises from 'fs/promises';
 import { createWriteStream, WriteStream } from 'fs';
 import { Writable } from "stream";
+import RotatingWritable from "../utils/RotatingWritable";
 
-/**
- * A custom Writable stream that writes data to a series of files,
- * rotating to a new file based on a time interval (default 10 seconds).
- */
-class RotatingWritableStream extends Writable {
-    // @ts-ignore
-    currentWriteStream: WriteStream;
-    lastTimestamp: number;
-
-
-    constructor(public baseName = 'out', public extension = 'mp4', public rotationIntervalMs = 20000, options = {}) {
-        // The Writable stream's constructor is called first
-        super(options);
-        this.lastTimestamp = -1; // Initialize to -1 to ensure the first write triggers a rotation
-    }
-
-    _maybeCloseAndOpenNewStream() {
-        if (this.currentWriteStream) this.currentWriteStream.end();
-        const newPath = `${this.baseName}_${this.lastTimestamp}.${this.extension}`;
-        this.currentWriteStream = createWriteStream(newPath, { flags: 'a' });
-    }
-
-    maybeRotate() {
-        const now = Date.now();
-        const elapsed = now - this.lastTimestamp;
-        const needRotate = elapsed > this.rotationIntervalMs;
-        if (needRotate) {
-            this.lastTimestamp = now;
-            this._maybeCloseAndOpenNewStream();
-        }
-
-        return needRotate;
-    }
-
-    /**
- * The essential method for a Writable stream. It's called for every chunk of data.
- * @param chunk - The data chunk to write.
- * @param encoding - The encoding of the chunk (ignored for buffers).
- * @param callback - Function to call when the write is complete.
-     */
-    _write(chunk: Buffer, encoding: string, callback: (error?: Error | null) => void) {
-        const writeSuccessful = this.currentWriteStream.write(chunk);
-
-        if (writeSuccessful) {
-            // If write was successful, call the callback immediately
-            setImmediate(() => callback(null));
-        } else {
-            // Handle backpressure from the underlying file stream
-            this.currentWriteStream.once('drain', () => {
-                callback(null);
-            });
-        }
-    }
-
-    /**
-     * Optional: Method called when .end() is called on the stream.
-     * Ensure the final file stream is closed.
-     */
-    _final(callback: (error?: Error | null) => void) {
-        if (this.currentWriteStream) {
-            this.currentWriteStream.end(callback);
-        } else {
-            callback();
-        }
-    }
-}
 
 async function transcode(input_file: string): Promise<number> {
     let ret: number;
@@ -90,7 +25,7 @@ async function transcode(input_file: string): Promise<number> {
     try {
         const state: any = {};
         // Create the rotating writable stream with 10-second rotation interval
-        const rotatingStream = new RotatingWritableStream('output', 'mp4');
+        const rotatingStream = new RotatingWritable('output', 'mp4');
 
         // Create IO context
         const io_ctx = new IOContext();
