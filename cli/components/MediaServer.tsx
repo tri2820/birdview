@@ -15,6 +15,7 @@ import {
   searchFramesByDescription,
   updateFrame,
 } from "../utils/database";
+import fs from "fs/promises";
 
 export default function MediaServer() {
   const [output, setOutput] = useState<string[]>([]);
@@ -210,6 +211,26 @@ export default function MediaServer() {
             },
             clients: [clients[id]],
           });
+        }
+
+        if (msg.header.type === "get_image") {
+          const path = msg.header.path;
+          log(`Client requested image: ${path}`);
+          try {
+            const buffer = await fs.readFile(path);
+            const arrayBuffer: ArrayBufferLike = buffer.slice().buffer;
+
+            broadcast({
+              header: {
+                type: "get_image_result",
+                path,
+              },
+              buffer: arrayBuffer,
+              clients: [clients[id]],
+            });
+          } catch (e) {
+            log("Error reading image file: " + e);
+          }
         }
       });
 

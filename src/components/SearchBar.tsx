@@ -2,6 +2,7 @@ import { BsSearch } from "solid-icons/bs";
 import { FaSolidCloud } from "solid-icons/fa";
 import { VsDeviceCamera, VsSearch } from "solid-icons/vs";
 import { createMessage, parseMessage } from "../../message";
+import { format } from "date-fns";
 import {
   createEffect,
   createSignal,
@@ -11,7 +12,13 @@ import {
   Show,
   untrack,
 } from "solid-js";
-import { latestWsMessage, socket } from "../utils";
+import {
+  cachedImages,
+  config,
+  latestWsMessage,
+  setCachedImages,
+  socket,
+} from "../utils";
 import { BiSolidCctv } from "solid-icons/bi";
 
 function NoResultIcon() {
@@ -677,14 +684,20 @@ export default function SearchBar(props?: { variant?: "md" | "lg" }) {
   createEffect(() => {
     const msg = latestWsMessage();
     if (!msg) return;
-    if (msg.header.type !== "search_result") return;
-    console.log("Received search result", msg);
-    if (msg.header.query !== untrack(query)) return; // Ignore old results
-    setState({
-      type: "result",
-      query: msg.header.query,
-      result: msg.header.result,
-    });
+    if (msg.header.type === "search_result") {
+      console.log("Received search result", msg);
+      if (msg.header.query !== untrack(query)) return; // Ignore old results
+      setState({
+        type: "result",
+        query: msg.header.query,
+        result: msg.header.result,
+      });
+    }
+
+    if (msg.header.type === "get_image_result") {
+      if (!msg.imageBuffer) return;
+      setCachedImages(msg.header.path, msg.imageBuffer);
+    }
   });
 
   onMount(() => {
@@ -759,27 +772,96 @@ export default function SearchBar(props?: { variant?: "md" | "lg" }) {
               fallback={
                 <div>
                   <For each={state().result?.items}>
-                    {(item) => (
-                      <div class="p-4 hover:bg-neutral-800 cursor-pointer">
-                        <div class="flex items-center space-x-2 py-2">
-                          <BiSolidCctv class="w-4 h-4 text-neutral-400" />
-                          <div>{item.stream_id}</div>
-                          <div>•</div>
-                          <div class="text-sm">{item.at_time}</div>
-                        </div>
+                    {(item) => {
+                      const name = () =>
+                        config()?.streams[item.stream_id]?.label ||
+                        item.stream_id;
 
-                        <div class="text-xs line-clamp-2">
-                          {item.description}
-                        </div>
+                      const imgUrl = () => {
+                        if (!cachedImages[item.path]) return null;
 
-                        <div class="pt-4 flex items-center">
-                          <div class="text-xs text-[#a3eeef] border border-[#4c6f73] rounded-full bg-[#28393e] px-2 py-1">
-                            {/* Rounded to 2 decimal places */}
-                            relevant: {item.score.toFixed(2)}
+                        // 1. Create a blob from the ArrayBuffer
+                        const blob = new Blob([cachedImages[item.path]], {
+                          type: "image/jpeg",
+                        });
+
+                        // 2. Create an object URL from the blob
+                        const imageUrl = URL.createObjectURL(blob);
+                        return imageUrl;
+                      };
+
+                      if (!imgUrl()) {
+                        const msg = createMessage({
+                          type: "get_image",
+                          path: item.path,
+                        });
+                        socket?.send(msg);
+                      }
+
+                      const desc = () => {
+                        const removePrefixes = [
+                          "This image depicts",
+                          "The image depicts",
+                          "The image shows",
+                          "This image shows",
+                          "The image captures",
+                          "This image captures",
+                        ];
+
+                        let d = item.description.trim();
+                        for (const prefix of removePrefixes) {
+                          if (d.startsWith(prefix)) {
+                            d = d.slice(prefix.length).trim();
+                            // capitalize first letter
+                            if (d.length > 0) {
+                              d = d.charAt(0).toUpperCase() + d.slice(1);
+                            }
+                          }
+                        }
+
+                        return d;
+                      };
+
+                      return (
+                        <div class="p-4 hover:bg-neutral-800 cursor-pointer flex items-start space-x-4">
+                          <div class="flex-1">
+                            <div class="flex items-center space-x-2 py-2">
+                              <BiSolidCctv class="w-4 h-4 text-neutral-400" />
+                              <div>{name()}</div>
+                              <div>•</div>
+                              <div class="text-sm">
+                                {format(
+                                  item.at_time,
+                                  "eeee, MMMM do, yyyy 'at' h:mm a"
+                                )}
+                              </div>
+                            </div>
+
+                            <div class="text-xs line-clamp-2">{desc()}</div>
+
+                            <div class="pt-4 flex items-center">
+                              <div class="text-xs text-[#a3eeef] border border-[#4c6f73] rounded-full bg-[#28393e] px-2 py-1">
+                                {/* Rounded to 2 decimal places */}
+                                relevant: {item.score.toFixed(2)}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div class="flex-none h-full">
+                            <div class="h-24 w-32 object-cover rounded-lg bg-neutral-800 overflow-hidden">
+                              <Show when={imgUrl()}>
+                                {(u) => (
+                                  <img
+                                    src={u()}
+                                    class="w-full h-full object-cover"
+                                  />
+                                )}
+                              </Show>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    }}
                   </For>
                 </div>
               }

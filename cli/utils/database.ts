@@ -144,7 +144,8 @@ export async function searchFramesByDescription(connection: DuckDBConnection, qu
             FROM frames
         ) sq
         WHERE score IS NOT NULL
-        ORDER BY score DESC;
+        ORDER BY score DESC
+        LIMIT 50;
     `;
     const results = await connection.runAndReadAll(querySql, { query: query });
     return results;

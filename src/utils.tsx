@@ -273,3 +273,7 @@ export const shortenText = (text: string, maxLength = 100) => {
   if (text.length <= maxLength) return text;
   return text.slice(0, maxLength) + "...";
 };
+
+export const [cachedImages, setCachedImages] = createStore<
+  Record<string, ArrayBuffer>
+>({});

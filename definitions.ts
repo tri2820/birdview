@@ -24,6 +24,9 @@ export type WsHeader =
     result: {
       items: any[];
     };
+  } | {
+    type: 'get_image_result';
+    path: string;
   }
 
 
