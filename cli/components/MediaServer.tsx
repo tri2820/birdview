@@ -7,7 +7,7 @@ import { logger } from "../utils/logger";
 import { jsonBigIntReplacer } from "../utils/json";
 import { mediaConfig } from "../../config";
 import { AV_LOG_WARNING, Log } from "node-av";
-import sharp from "sharp";
+import fs from "fs/promises";
 
 type WsClient = {
   id: string;
@@ -40,6 +40,18 @@ class WsClientWrapper {
       }
     }
   }
+}
+
+const tempdir = "/tmp/birdview_frames/";
+async function saveFrame(id: string, buffer: ArrayBufferLike) {
+  // Make sure the directory exists
+  await fs.mkdir(tempdir, { recursive: true });
+  const filepath = `${tempdir}${id}.jpg`;
+  await fs.writeFile(filepath, Buffer.from(buffer));
+  return {
+    filepath,
+    id,
+  };
 }
 
 function createMessage(header: Record<string, any>, buffer?: ArrayBufferLike) {
@@ -90,27 +102,45 @@ export default function MediaServer() {
     };
   } = {};
 
-  let lastSentTime: number | null = null;
-  async function forwardToBackend(msg: ForwardMessage) {
+  let backendState: {
+    [stream_id: string]: {
+      lastSentTime: number;
+    };
+  } = {};
+
+  async function forwardToBackend(
+    stream_id: string,
+    id: string,
+    msg: ForwardMessage
+  ) {
     if (msg.type !== "frame") return;
     const message = createMessage(
       {
         type: "index",
+        stream_id,
+        id,
       },
       msg.buffer
     );
 
+    if (!backendState[stream_id]) {
+      backendState[stream_id] = {
+        lastSentTime: -1,
+      };
+    }
+
     // TODO: Selectively send messages based on some criteria
     // e.g. motion, object detected, scene change, etc.
-    // Here, send every 5 seconds as a placeholder
-    if (lastSentTime === null || Date.now() - lastSentTime > 5000) {
-      console.log("Sending frame to backend for indexing");
-      lastSentTime = Date.now();
+    // Here, send every X seconds as a placeholder
+    if (Date.now() - backendState[stream_id].lastSentTime > 5000) {
+      log("Sending frame to backend for indexing");
+      backendState[stream_id].lastSentTime = Date.now();
 
       backendClient?.send(message);
 
       // Also save the frame to disk
-      // sharp(Buffer.from(msg.buffer)).toFile(`frame-${Date.now()}.jpg`);
+      log("Saving frame to disk");
+      await saveFrame(id, msg.buffer);
     }
   }
 
@@ -120,12 +150,16 @@ export default function MediaServer() {
     try {
       for await (const msg of messages) {
         // Forward all messages to backend for indexing
-        forwardToBackend(msg);
+        // This id is used to identify frames
+        const id = crypto.randomUUID();
+
+        console.log(`Forwarding frame from stream ${stream_id}`);
+        forwardToBackend(stream_id, id, msg);
 
         if (msg.type === "frame") {
           // Forward frame messages to clients
           broadcast({
-            header: { type: "frame", stream_id },
+            header: { type: "frame", stream_id, id },
             buffer: msg.buffer,
             clients: Object.values(clients),
           });
@@ -172,7 +206,7 @@ export default function MediaServer() {
       clients[id] = {
         id,
         ip,
-        ws: ws as any,
+        ws,
       };
 
       // Send config to the new client
@@ -245,7 +279,7 @@ export default function MediaServer() {
 
   useEffect(() => {
     console.log("Connecting to backend WebSocket for stream monitoring...");
-    const backendWs = new WebSocket("wss://backend.zapdoslabs.com");
+    const backendWs = new WebSocket("wss://stagingbackend.zapdoslabs.com");
     backendWs.onopen = () => {
       backendWs.send(
         JSON.stringify({
