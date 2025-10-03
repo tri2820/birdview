@@ -47,17 +47,21 @@ export async function addFrame(connection: DuckDBConnection, frame: {
     path: string;
     stream_id: string;
 }): Promise<void> {
-    await connection.run(
-        'INSERT INTO frames (id, description, at_time, path, stream_id) VALUES ($id, $description, $at_time, $path, $stream_id);',
-        {
-            id: frame.id,
-            description: frame.description,
-            at_time: frame.at_time,
-            path: frame.path,
-            stream_id: frame.stream_id,
-        }
-    );
-    rebuildFtsIndex(connection);
+    try {
+        await connection.run(
+            'INSERT INTO frames (id, description, at_time, path, stream_id) VALUES ($id, $description, $at_time, $path, $stream_id);',
+            {
+                id: frame.id,
+                description: frame.description,
+                at_time: frame.at_time,
+                path: frame.path,
+                stream_id: frame.stream_id,
+            }
+        );
+        rebuildFtsIndex(connection);
+    } catch (error) {
+        console.error("Error inserting frame:", error);
+    }
 }
 
 export async function updateFrame(connection: DuckDBConnection, frame: {
@@ -169,7 +173,7 @@ if (require.main === module) {
             //     path: '/media/frames/001.jpg',
             //     stream_id: 'a1b2c3d4-e5f6-7890-1234-567890abcdef'
             // });
-            // const dogFrameId = crypto.randomUUID()
+            // const dogFrameId = crypto.randomUUID()addFra
             // await addFrame(connection, {
             //     description: 'A dog is chasing a ball in the park',
             //     path: '/media/frames/002.jpg',

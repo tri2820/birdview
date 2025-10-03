@@ -82,6 +82,8 @@ export function usePlaceholder(props: { no_animation: boolean }) {
 }
 
 export default function SearchBar(props?: { variant?: "md" | "lg" }) {
+  const [showPopup, setShowPopup] = createSignal<any>();
+
   const variant = () => props?.variant || "md";
   const { placeholder } = usePlaceholder({
     no_animation: variant() === "md",
@@ -160,6 +162,46 @@ export default function SearchBar(props?: { variant?: "md" | "lg" }) {
       <Show when={isOpen()}>
         <div class="fixed h-[100vh] w-[100vw] top-0 left-0  z-[100]" />
       </Show>
+
+      <Show when={showPopup()}>
+        {(item) => {
+          const name = () =>
+            config()?.streams[item().stream_id]?.label || item().stream_id;
+
+          const imgUrl = () => {
+            if (!cachedImages[item().path]) return null;
+
+            // 1. Create a blob from the ArrayBuffer
+            const blob = new Blob([cachedImages[item().path]], {
+              type: "image/jpeg",
+            });
+
+            // 2. Create an object URL from the blob
+            const imageUrl = URL.createObjectURL(blob);
+            return imageUrl;
+          };
+
+          return (
+            <div class="fixed h-[100vh] w-[100vw] top-0 left-0  z-[500]">
+              <div class="absolute top-0 left-0 w-full h-full bg-black p-4">
+                <img src={imgUrl()!} class="h-[50vh] aspect-video" />
+                <div class="text-2xl font-bold mt-4">{name()}</div>
+                <div class="text-sm text-neutral-400">
+                  {format(item().at_time, "eeee, MMMM do, yyyy 'at' h:mm a")}
+                </div>
+                <div class="mt-4">{item().description}</div>
+                <button
+                  class="absolute top-4 right-4 text-white text-3xl"
+                  onClick={() => setShowPopup(null)}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          );
+        }}
+      </Show>
+
       <div
         ref={setBarRef}
         data-variant={variant()}
@@ -261,7 +303,13 @@ export default function SearchBar(props?: { variant?: "md" | "lg" }) {
                       };
 
                       return (
-                        <div class="p-4 hover:bg-neutral-800 cursor-pointer flex items-start space-x-4">
+                        <div
+                          class="p-4 hover:bg-neutral-800 cursor-pointer flex items-start space-x-4"
+                          onClick={() => {
+                            // setIsOpen(false);
+                            setShowPopup(item);
+                          }}
+                        >
                           <div class="flex-1">
                             <div class="flex items-center space-x-2 py-2">
                               <BiSolidCctv class="w-4 h-4 text-neutral-400" />
