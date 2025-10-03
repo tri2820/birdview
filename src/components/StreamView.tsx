@@ -50,7 +50,7 @@ export default function StreamView(props: {
           <videoPlayer.component />
         </div>
       </div>
-      <EventBar />
+      {/* <EventBar /> */}
     </div>
   );
 }

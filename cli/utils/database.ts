@@ -88,18 +88,13 @@ export async function updateFrame(connection: DuckDBConnection, frame: {
         params.stream_id = frame.stream_id;
     }
 
-    try {
-        if (updates.length > 0) {
-            // **THE FIX IS HERE**: Use CAST($id AS UUID) in the WHERE clause.
-            const sql = `UPDATE frames SET ${updates.join(', ')} WHERE id = CAST($id AS UUID);`;
+    if (updates.length > 0) {
+        // **THE FIX IS HERE**: Use CAST($id AS UUID) in the WHERE clause.
+        const sql = `UPDATE frames SET ${updates.join(', ')} WHERE id = CAST($id AS UUID);`;
 
-            // The `run` command sends the plain `params` object.
-            await connection.run(sql, params);
-            rebuildFtsIndex(connection);
-        }
-    } catch (error) {
-        // This will now no longer throw the prepared statement error.
-        console.error("Failed to update frame:", error);
+        // The `run` command sends the plain `params` object.
+        await connection.run(sql, params);
+        rebuildFtsIndex(connection);
     }
 }
 

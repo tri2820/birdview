@@ -14,7 +14,12 @@ function StreamItem(props: { id: Accessor<string> }) {
   useWsVideo({ id: props.id, videoPlayer });
 
   return (
-    <div class="h-32 rounded-2xl overflow-hidden border border-neutral-800">
+    <div
+      onClick={() => {
+        setTabId({ type: "stream", stream_id: props.id() });
+      }}
+      class="h-32 rounded-2xl overflow-hidden border border-neutral-800 cursor-pointer"
+    >
       <videoPlayer.component />
     </div>
   );

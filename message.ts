@@ -5,6 +5,15 @@ export function parseMessage(message: Buffer<ArrayBufferLike> | string): {
     error?: unknown;
 } {
     try {
+        return {
+            header: JSON.parse(message as any)
+        }
+    } catch (e) {
+        // Not a valid JSON string, so treat it as binary
+    }
+
+
+    try {
         if (typeof message === "string") {
             const header = JSON.parse(message) as Record<string, any>;
             return { header };

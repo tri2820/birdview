@@ -1,7 +1,17 @@
 import { BsSearch } from "solid-icons/bs";
 import { FaSolidCloud } from "solid-icons/fa";
 import { VsSearch } from "solid-icons/vs";
-import { createSignal, onCleanup, onMount, Show, untrack } from "solid-js";
+import { createMessage, parseMessage } from "../../message";
+import {
+  createEffect,
+  createSignal,
+  For,
+  onCleanup,
+  onMount,
+  Show,
+  untrack,
+} from "solid-js";
+import { socket } from "../utils";
 
 function NoResultIcon() {
   return (
@@ -78,6 +88,25 @@ export default function SearchBar(props?: { variant?: "md" | "lg" }) {
     };
   }>({ type: "result" });
 
+  const [query, setQuery] = createSignal("");
+
+  let searchTimeout: any = null;
+
+  createEffect(() => {
+    const q = query().trim();
+    if (searchTimeout) clearTimeout(searchTimeout);
+    if (q === "") {
+      setState({ type: "result", result: { items: [] } });
+      return;
+    }
+    setState({ type: "searching", query: q });
+    searchTimeout = setTimeout(() => {
+      const msg = createMessage({ type: "search", query: q });
+      console.log("Sending search message", msg);
+      socket?.send(msg);
+    }, 500);
+  });
+
   onMount(() => {
     const listener = (e: MouseEvent) => {
       const bar = untrack(barRef);
@@ -126,6 +155,10 @@ export default function SearchBar(props?: { variant?: "md" | "lg" }) {
             class="h-full flex items-center justify-center data-[open=true]:justify-end"
           >
             <input
+              value={query()}
+              onInput={(e) => {
+                setQuery(e.currentTarget.value);
+              }}
               data-open={isOpen()}
               data-variant={variant()}
               class="w-[calc(100%-3rem)] 
@@ -141,7 +174,16 @@ export default function SearchBar(props?: { variant?: "md" | "lg" }) {
             data-empty={isEmptyResult()}
             class="h-[50vh] data-empty:h-80 w-full border-t border-neutral-800"
           >
-            <Show when={isEmptyResult()}>
+            <Show
+              when={isEmptyResult()}
+              fallback={
+                <div>
+                  <For each={state().result?.items}>
+                    {(item) => <div>{JSON.stringify(item)}</div>}
+                  </For>
+                </div>
+              }
+            >
               <div class="flex items-center h-full justify-center">
                 <div class="flex flex-col items-center ">
                   <NoResultIcon />

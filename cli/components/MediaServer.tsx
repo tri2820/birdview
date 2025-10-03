@@ -8,7 +8,7 @@ import { saveFrame } from "../utils/indexing";
 import { logger } from "../utils/logger";
 import { ForwardMessage, forwardStream } from "../utils/startForward";
 import { WsClient, WsClientWrapper } from "../utils/ws_utils";
-import { createMessage, parseMessage } from "../utils/message";
+import { createMessage, parseMessage } from "../../message";
 import { addFrame, connection, updateFrame } from "../utils/database";
 
 export default function MediaServer() {
@@ -188,10 +188,12 @@ export default function MediaServer() {
 
       // This event listener is fired when the server receives a message from a client
       ws.on("message", (message) => {
-        log(`Received message => ${message}`);
+        const msg = parseMessage(message as any);
 
-        // Echo the received message back to the client
-        ws.send(`Server received: ${message}`);
+        if (msg.header.type === "search") {
+          const query = msg.header.query;
+          log(`Received search query from client: ${query}`);
+        }
       });
 
       // This event listener is fired when a client disconnects
@@ -256,11 +258,19 @@ export default function MediaServer() {
         } = parseMessage(event.data as any).header as any;
 
         // TODO: update database
-        console.log("Received index result from backend:", data);
-        await updateFrame(connection, {
-          id: data.id,
-          description: data.description,
-        });
+        try {
+          await updateFrame(connection, {
+            id: data.id,
+            description: data.description,
+          });
+        } catch (e) {
+          console.error(
+            "Failed to update frame with backend result:",
+            e,
+            event,
+            event.data
+          );
+        }
       };
 
       backendWs.onerror = (err) => {
