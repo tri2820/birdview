@@ -1,0 +1,64 @@
+
+export function parseMessage(message: Buffer<ArrayBufferLike> | string): {
+    header: Record<string, any>;
+    buffer?: Uint8Array;
+    error?: unknown;
+} {
+    try {
+        if (typeof message === "string") {
+            const header = JSON.parse(message) as Record<string, any>;
+            return { header };
+        }
+
+        // Use a DataView to safely read numbers from the buffer
+        const view = new DataView(message.buffer, message.byteOffset, message.byteLength);
+
+        // 1. Read the header length from the first 4 bytes (at offset 0)
+        // The 'false' argument specifies Big-Endian, matching our server.
+        const headerLength = view.getUint32(0, false);
+
+        // 2. Define the byte offsets for the different parts
+        const headerStart = 4; // Header starts after the 4-byte length prefix
+        const imageStart = headerStart + headerLength;
+
+        // 3. Decode the header string (from bytes to a string)
+        // Use TextDecoder for proper UTF-8 handling.
+        const headerSlice = new Uint8Array(message.buffer, message.byteOffset + headerStart, headerLength);
+        const headerString = new TextDecoder().decode(headerSlice);
+        const header = JSON.parse(headerString);
+
+        // 4. Extract the image data
+        // The image is the rest of the buffer after the header.
+        if (imageStart >= message.byteLength) {
+            return { header };
+        }
+
+        const buffer = Uint8Array.prototype.slice.call(message, imageStart);
+        return { header, buffer };
+    } catch (error) {
+        console.error("Failed to parse WebSocket message:", error);
+        return { header: {}, error };
+    }
+}
+
+export function jsonBigIntReplacer(key: string, value: any) {
+    if (typeof value === 'bigint') {
+        return value.toString();
+    }
+    return value;
+}
+
+
+export function createMessage(header: Record<string, any>, buffer?: ArrayBufferLike) {
+    if (buffer) {
+        const headerString = JSON.stringify(header, jsonBigIntReplacer);
+        const headerBuffer = Buffer.from(headerString, "utf-8");
+        const headerLength = headerBuffer.length;
+        const lengthBuffer = Buffer.alloc(4);
+        lengthBuffer.writeUInt32BE(headerLength, 0);
+        const imageBuffer = Buffer.from(buffer as ArrayBuffer);
+        return Buffer.concat([lengthBuffer, headerBuffer, imageBuffer]);
+    }
+
+    return JSON.stringify(header, jsonBigIntReplacer);
+}

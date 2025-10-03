@@ -4,10 +4,12 @@ import { AV_LOG_WARNING, Log } from "node-av";
 import { WebSocket, WebSocketServer } from "ws";
 import { mediaConfig } from "../../config";
 import { WsHeader } from "../../definitions";
-import { createMessage, saveFrame } from "../utils/indexing";
+import { saveFrame } from "../utils/indexing";
 import { logger } from "../utils/logger";
 import { ForwardMessage, forwardStream } from "../utils/startForward";
 import { WsClient, WsClientWrapper } from "../utils/ws_utils";
+import { createMessage, parseMessage } from "../utils/message";
+import { addFrame, connection, updateFrame } from "../utils/database";
 
 export default function MediaServer() {
   const [output, setOutput] = useState<string[]>([]);
@@ -81,7 +83,17 @@ export default function MediaServer() {
 
       // Also save the frame to disk
       log("Saving frame to disk");
-      await saveFrame(id, msg.buffer);
+      const result = await saveFrame(id, msg.buffer);
+
+      // Add to database
+      await addFrame(connection, {
+        id,
+        at_time: new Date().toISOString(),
+        // Empty description for now, will be updated by backend result
+        description: "",
+        path: result.filepath,
+        stream_id,
+      });
     }
   }
 
@@ -236,13 +248,23 @@ export default function MediaServer() {
         setTimeout(connectToBackend, 5000);
       };
 
-      backendWs.onmessage = (event) => {
-        // Handle messages from backend if needed
-        console.log("Message from backend:", event.data);
+      backendWs.onmessage = async (event) => {
+        const data: {
+          type: "index_result";
+          id: string;
+          description: string;
+        } = parseMessage(event.data as any).header as any;
+
+        // TODO: update database
+        console.log("Received index result from backend:", data);
+        await updateFrame(connection, {
+          id: data.id,
+          description: data.description,
+        });
       };
 
       backendWs.onerror = (err) => {
-        console.error(
+        log(
           "Backend WebSocket error:",
           err.message,
           "Retrying in 5 seconds..."
