@@ -1,3 +1,5 @@
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { AppConfig } from "./config";
 export type WsHeader =
   | {
@@ -17,3 +19,11 @@ export type WsHeader =
     type: "config";
     data: AppConfig;
   };
+
+
+// These two lines give you the equivalent of __dirname in ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Relative to this file
+export const DATABASE_PATH = path.join(__dirname, 'app.db');
