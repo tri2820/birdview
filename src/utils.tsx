@@ -277,3 +277,9 @@ export const shortenText = (text: string, maxLength = 100) => {
 export const [cachedImages, setCachedImages] = createStore<
   Record<string, ArrayBuffer>
 >({});
+
+export const [recentSearches, setRecentSearches] = createSignal<string[]>([
+  "loading dock",
+  "back door access",
+  "parking spot 42",
+]);

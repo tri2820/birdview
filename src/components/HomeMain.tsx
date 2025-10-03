@@ -7,7 +7,7 @@ import { Accessor, For } from "solid-js";
 import SearchBar from "./SearchBar";
 import useWsVideo from "./useWsVideo";
 import useVideoPlayer from "./useVideoPlayer";
-import { config, setTabId } from "../utils";
+import { config, recentSearches, setTabId } from "../utils";
 
 function StreamItem(props: { id: Accessor<string> }) {
   const videoPlayer = useVideoPlayer({ fit: "cover" });
@@ -48,7 +48,7 @@ export default function HomeMain() {
         </div>
 
         <div>
-          <For each={["loading dock", "back door access", "parking spot 42"]}>
+          <For each={recentSearches()}>
             {(item) => {
               return (
                 <div class="text-neutral-300 hover:text-white cursor-pointer px-6 py-4 border-b border-neutral-800">

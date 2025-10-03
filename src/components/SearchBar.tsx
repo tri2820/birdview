@@ -17,6 +17,7 @@ import {
   config,
   latestWsMessage,
   setCachedImages,
+  setRecentSearches,
   socket,
 } from "../utils";
 import { BiSolidCctv } from "solid-icons/bi";
@@ -127,6 +128,13 @@ export default function SearchBar(props?: { variant?: "md" | "lg" }) {
     if (msg.header.type === "search_result") {
       console.log("Received search result", msg);
       if (msg.header.query !== untrack(query)) return; // Ignore old results
+
+      const q = msg.header.query;
+      setRecentSearches((old) => {
+        const newSearches = [q, ...old.filter((s) => s !== q)];
+        return newSearches.slice(0, 5);
+      });
+
       setState({
         type: "result",
         query: msg.header.query,
