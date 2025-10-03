@@ -1,72 +1,13 @@
-import { Box, Newline, render, Text } from "ink";
+import { Box, Text } from "ink";
 import React, { useEffect, useState } from "react";
-import { ForwardMessage, forwardStream } from "../utils/startForward";
-import { WebSocketServer, WebSocket } from "ws";
-import { WsHeader } from "../../definitions";
-import { logger } from "../utils/logger";
-import { jsonBigIntReplacer } from "../utils/json";
-import { mediaConfig } from "../../config";
 import { AV_LOG_WARNING, Log } from "node-av";
-import fs from "fs/promises";
-
-type WsClient = {
-  id: string;
-  ip: string | undefined;
-  ws: WebSocket;
-};
-
-// So that we can queue messages if the client is not ready
-class WsClientWrapper {
-  queue: (Buffer | string)[] = [];
-  constructor(public ws: WebSocket) {
-    this.ws.on("open", () => {
-      this.flush();
-    });
-  }
-
-  send(message: Buffer | string) {
-    if (this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(message);
-    } else {
-      this.queue.push(message);
-    }
-  }
-
-  flush() {
-    while (this.queue.length > 0) {
-      const message = this.queue.shift();
-      if (message) {
-        this.ws.send(message);
-      }
-    }
-  }
-}
-
-const tempdir = "/tmp/birdview_frames/";
-async function saveFrame(id: string, buffer: ArrayBufferLike) {
-  // Make sure the directory exists
-  await fs.mkdir(tempdir, { recursive: true });
-  const filepath = `${tempdir}${id}.jpg`;
-  await fs.writeFile(filepath, Buffer.from(buffer));
-  return {
-    filepath,
-    id,
-  };
-}
-
-function createMessage(header: Record<string, any>, buffer?: ArrayBufferLike) {
-  if (buffer) {
-    const headerString = JSON.stringify(header, jsonBigIntReplacer);
-    const headerBuffer = Buffer.from(headerString, "utf-8");
-    const headerLength = headerBuffer.length;
-    const lengthBuffer = Buffer.alloc(4);
-    lengthBuffer.writeUInt32BE(headerLength, 0);
-    const imageBuffer = Buffer.from(buffer as ArrayBuffer);
-    return Buffer.concat([lengthBuffer, headerBuffer, imageBuffer]);
-  }
-
-  return JSON.stringify(header, jsonBigIntReplacer);
-}
+import { WebSocket, WebSocketServer } from "ws";
+import { mediaConfig } from "../../config";
+import { WsHeader } from "../../definitions";
+import { createMessage, saveFrame } from "../utils/indexing";
+import { logger } from "../utils/logger";
+import { ForwardMessage, forwardStream } from "../utils/startForward";
+import { WsClient, WsClientWrapper } from "../utils/ws_utils";
 
 export default function MediaServer() {
   const [output, setOutput] = useState<string[]>([]);
@@ -152,8 +93,6 @@ export default function MediaServer() {
         // Forward all messages to backend for indexing
         // This id is used to identify frames
         const id = crypto.randomUUID();
-
-        console.log(`Forwarding frame from stream ${stream_id}`);
         forwardToBackend(stream_id, id, msg);
 
         if (msg.type === "frame") {
@@ -278,17 +217,42 @@ export default function MediaServer() {
   }, []);
 
   useEffect(() => {
-    console.log("Connecting to backend WebSocket for stream monitoring...");
-    const backendWs = new WebSocket("wss://stagingbackend.zapdoslabs.com");
-    backendWs.onopen = () => {
-      backendWs.send(
-        JSON.stringify({
-          type: "I_am_a_media_server",
-        })
-      );
+    const connectToBackend = () => {
+      console.log("Connecting to backend WebSocket for stream monitoring...");
+      const backendWs = new WebSocket("wss://stagingbackend.zapdoslabs.com");
+
+      backendWs.onopen = () => {
+        console.log("Connected to backend.");
+        backendWs.send(
+          JSON.stringify({
+            type: "I_am_a_media_server",
+          })
+        );
+        backendClient = new WsClientWrapper(backendWs);
+      };
+
+      backendWs.onclose = () => {
+        console.log("Backend WebSocket closed. Retrying in 5 seconds...");
+        setTimeout(connectToBackend, 5000);
+      };
+
+      backendWs.onmessage = (event) => {
+        // Handle messages from backend if needed
+        console.log("Message from backend:", event.data);
+      };
+
+      backendWs.onerror = (err) => {
+        console.error(
+          "Backend WebSocket error:",
+          err.message,
+          "Retrying in 5 seconds..."
+        );
+        // The 'onclose' event will usually fire after an 'onerror',
+        // so we don't strictly need to retry here as well to avoid double retries.
+      };
     };
 
-    backendClient = new WsClientWrapper(backendWs);
+    connectToBackend();
   }, []);
 
   return (
