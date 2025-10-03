@@ -1,12 +1,13 @@
 import { Box, Newline, render, Text } from "ink";
 import React, { useEffect, useState } from "react";
-import { forwardStream } from "../utils/startForward";
+import { ForwardMessage, forwardStream } from "../utils/startForward";
 import { WebSocketServer, WebSocket } from "ws";
 import { WsHeader } from "../../definitions";
 import { logger } from "../utils/logger";
 import { jsonBigIntReplacer } from "../utils/json";
 import { mediaConfig } from "../../config";
 import { AV_LOG_WARNING, Log } from "node-av";
+import sharp from "sharp";
 
 type WsClient = {
   id: string;
@@ -14,8 +15,50 @@ type WsClient = {
   ws: WebSocket;
 };
 
+// So that we can queue messages if the client is not ready
+class WsClientWrapper {
+  queue: (Buffer | string)[] = [];
+  constructor(public ws: WebSocket) {
+    this.ws.on("open", () => {
+      this.flush();
+    });
+  }
+
+  send(message: Buffer | string) {
+    if (this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(message);
+    } else {
+      this.queue.push(message);
+    }
+  }
+
+  flush() {
+    while (this.queue.length > 0) {
+      const message = this.queue.shift();
+      if (message) {
+        this.ws.send(message);
+      }
+    }
+  }
+}
+
+function createMessage(header: Record<string, any>, buffer?: ArrayBufferLike) {
+  if (buffer) {
+    const headerString = JSON.stringify(header, jsonBigIntReplacer);
+    const headerBuffer = Buffer.from(headerString, "utf-8");
+    const headerLength = headerBuffer.length;
+    const lengthBuffer = Buffer.alloc(4);
+    lengthBuffer.writeUInt32BE(headerLength, 0);
+    const imageBuffer = Buffer.from(buffer as ArrayBuffer);
+    return Buffer.concat([lengthBuffer, headerBuffer, imageBuffer]);
+  }
+
+  return JSON.stringify(header, jsonBigIntReplacer);
+}
+
 export default function MediaServer() {
   const [output, setOutput] = useState<string[]>([]);
+  let backendClient: WsClientWrapper | null = null;
   let clients: {
     [key: string]: WsClient;
   } = {};
@@ -27,19 +70,7 @@ export default function MediaServer() {
     buffer?: ArrayBufferLike;
     clients: WsClient[];
   }) {
-    let finalMessage: Buffer | string;
-    if (opts.buffer) {
-      const { header, buffer } = opts;
-      const headerString = JSON.stringify(header, jsonBigIntReplacer);
-      const headerBuffer = Buffer.from(headerString, "utf-8");
-      const headerLength = headerBuffer.length;
-      const lengthBuffer = Buffer.alloc(4);
-      lengthBuffer.writeUInt32BE(headerLength, 0);
-      const imageBuffer = Buffer.from(buffer as ArrayBuffer);
-      finalMessage = Buffer.concat([lengthBuffer, headerBuffer, imageBuffer]);
-    } else {
-      finalMessage = JSON.stringify(opts.header, jsonBigIntReplacer);
-    }
+    let finalMessage: Buffer | string = createMessage(opts.header, opts.buffer);
 
     opts.clients.forEach((client) => {
       try {
@@ -59,12 +90,40 @@ export default function MediaServer() {
     };
   } = {};
 
+  let lastSentTime: number | null = null;
+  async function forwardToBackend(msg: ForwardMessage) {
+    if (msg.type !== "frame") return;
+    const message = createMessage(
+      {
+        type: "index",
+      },
+      msg.buffer
+    );
+
+    // TODO: Selectively send messages based on some criteria
+    // e.g. motion, object detected, scene change, etc.
+    // Here, send every 5 seconds as a placeholder
+    if (lastSentTime === null || Date.now() - lastSentTime > 5000) {
+      console.log("Sending frame to backend for indexing");
+      lastSentTime = Date.now();
+
+      backendClient?.send(message);
+
+      // Also save the frame to disk
+      // sharp(Buffer.from(msg.buffer)).toFile(`frame-${Date.now()}.jpg`);
+    }
+  }
+
   async function loopStream(stream_id: string, url: string) {
     const messages = forwardStream(url);
 
     try {
       for await (const msg of messages) {
+        // Forward all messages to backend for indexing
+        forwardToBackend(msg);
+
         if (msg.type === "frame") {
+          // Forward frame messages to clients
           broadcast({
             header: { type: "frame", stream_id },
             buffer: msg.buffer,
@@ -182,6 +241,20 @@ export default function MediaServer() {
     return () => {
       Log.setCallback(null);
     };
+  }, []);
+
+  useEffect(() => {
+    console.log("Connecting to backend WebSocket for stream monitoring...");
+    const backendWs = new WebSocket("wss://backend.zapdoslabs.com");
+    backendWs.onopen = () => {
+      backendWs.send(
+        JSON.stringify({
+          type: "I_am_a_media_server",
+        })
+      );
+    };
+
+    backendClient = new WsClientWrapper(backendWs);
   }, []);
 
   return (

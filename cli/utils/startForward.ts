@@ -2,11 +2,14 @@ import { AV_PIX_FMT_RGB24, Decoder, FFmpegError, Frame, MediaInput, SoftwareScal
 import sharp, { Channels } from "sharp";
 import { AsyncQueue } from "./AsyncQueue";
 
+
+
+export type ForwardMessage = { type: 'frame'; buffer: ArrayBufferLike } | {
+    type: 'codecpar';
+    data: { width: number; height: number; }
+}
 export async function* forwardStream(inputUrl: string) {
-    const queue = new AsyncQueue<{ type: 'frame'; buffer: ArrayBufferLike } | {
-        type: 'codecpar';
-        data: { width: number; height: number; }
-    }>();
+    const queue = new AsyncQueue<ForwardMessage>();
     using input = await MediaInput.open(inputUrl);
     const videoStream = input.video();
 
