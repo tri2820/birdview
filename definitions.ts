@@ -18,7 +18,13 @@ export type WsHeader =
   | {
     type: "config";
     data: AppConfig;
-  };
+  } | {
+    type: "search_result";
+    query: string;
+    result: {
+      items: any[];
+    };
+  }
 
 
 // These two lines give you the equivalent of __dirname in ES Modules

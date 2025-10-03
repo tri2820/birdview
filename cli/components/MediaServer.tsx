@@ -9,7 +9,12 @@ import { logger } from "../utils/logger";
 import { ForwardMessage, forwardStream } from "../utils/startForward";
 import { WsClient, WsClientWrapper } from "../utils/ws_utils";
 import { createMessage, parseMessage } from "../../message";
-import { addFrame, connection, updateFrame } from "../utils/database";
+import {
+  addFrame,
+  connection,
+  searchFramesByDescription,
+  updateFrame,
+} from "../utils/database";
 
 export default function MediaServer() {
   const [output, setOutput] = useState<string[]>([]);
@@ -187,12 +192,24 @@ export default function MediaServer() {
       });
 
       // This event listener is fired when the server receives a message from a client
-      ws.on("message", (message) => {
+      ws.on("message", async (message) => {
         const msg = parseMessage(message as any);
 
         if (msg.header.type === "search") {
           const query = msg.header.query;
           log(`Received search query from client: ${query}`);
+          const result = await searchFramesByDescription(connection, query);
+          const items = result.getRowObjectsJson();
+          broadcast({
+            header: {
+              type: "search_result",
+              query,
+              result: {
+                items,
+              },
+            },
+            clients: [clients[id]],
+          });
         }
       });
 

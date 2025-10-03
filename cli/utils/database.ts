@@ -147,7 +147,7 @@ export async function searchFramesByDescription(connection: DuckDBConnection, qu
         ORDER BY score DESC;
     `;
     const results = await connection.runAndReadAll(querySql, { query: query });
-    return results.getRowObjects();
+    return results;
 }
 
 export const connection = await initializeDatabase();
