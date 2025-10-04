@@ -336,6 +336,17 @@ export default function MediaServer() {
               event,
               event.data
             );
+            console.error('Retrying once...');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            try {
+              await updateMediaUnit(connection, {
+                id: data.id,
+                description: data.description,
+              });
+              console.log("Retry succeeded.");
+            } catch (e) {
+              console.error("Retry failed:", e);
+            }
           }
         }
 

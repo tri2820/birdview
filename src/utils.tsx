@@ -119,7 +119,9 @@ export type TabId =
   | {
     type: "multiview";
     stream_ids: string[];
-  };
+  } | {
+    type: "database"
+  }
 
 export const [tabId, _setTabId] = createSignal<TabId>({
   type: "home",

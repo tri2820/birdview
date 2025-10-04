@@ -36,6 +36,10 @@ export default function App() {
         <TabLayout sidebar={sidebar} main={<div>Moments</div>} />
       </Match>
 
+      <Match when={tabId().type === "database"}>
+        <TabLayout sidebar={sidebar} main={<div>Database</div>} />
+      </Match>
+
       <Match when={tabId().type === "multiview"}>
         <TabLayout sidebar={sidebar} main={<MultiView />} />
       </Match>

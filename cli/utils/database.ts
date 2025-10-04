@@ -1,6 +1,10 @@
-import { DuckDBConnection, DuckDBInstance, uuidValue } from '@duckdb/node-api';
+import { DuckDBConnection, DuckDBInstance, DuckDBMaterializedResult, uuidValue } from '@duckdb/node-api';
 import fs from 'fs/promises';
 import { DATABASE_EMBEDDING_DIMENSION } from '../../definitions';
+import { Semaphore, Mutex } from 'async-mutex';
+
+// Even withDuckDB single process concurrency, parallel writes can still cause issues (throws "Failed to execute prepared statement" errors)
+const dbWriteMutex = new Mutex();
 
 /**
  * Initializes the database and creates the table schema.
@@ -56,23 +60,25 @@ export async function addMediaUnit(connection: DuckDBConnection, mediaUnit: {
     description?: string;
     embedding?: number[];
 }): Promise<void> {
-    try {
-        // **MODIFIED:** Changed table and column names
-        await connection.run(
-            `INSERT INTO media_units (id, description, at_time, path, media_id, embedding) VALUES ($id, $description, $at_time, $path, $media_id, CAST($embedding AS FLOAT[${DATABASE_EMBEDDING_DIMENSION}]));`,
-            {
-                id: mediaUnit.id,
-                description: mediaUnit.description ?? null,
-                at_time: mediaUnit.at_time,
-                path: mediaUnit.path,
-                media_id: mediaUnit.media_id,
-                embedding: mediaUnit.embedding ? JSON.stringify(mediaUnit.embedding) : null,
-            }
-        );
-        rebuildFtsIndex(connection);
-    } catch (error) {
-        console.error("Error inserting media unit:", error);
-    }
+    await dbWriteMutex.runExclusive(async () => {
+        try {
+            // **MODIFIED:** Changed table and column names
+            await connection.run(
+                `INSERT INTO media_units (id, description, at_time, path, media_id, embedding) VALUES ($id, $description, $at_time, $path, $media_id, CAST($embedding AS FLOAT[${DATABASE_EMBEDDING_DIMENSION}]));`,
+                {
+                    id: mediaUnit.id,
+                    description: mediaUnit.description ?? null,
+                    at_time: mediaUnit.at_time,
+                    path: mediaUnit.path,
+                    media_id: mediaUnit.media_id,
+                    embedding: mediaUnit.embedding ? JSON.stringify(mediaUnit.embedding) : null,
+                }
+            );
+            rebuildFtsIndex(connection);
+        } catch (error) {
+            console.error("Error inserting media unit:", error);
+        }
+    })
 }
 
 /**
@@ -86,37 +92,39 @@ export async function updateMediaUnit(connection: DuckDBConnection, mediaUnit: {
     media_id?: string;
     embedding?: number[];
 }): Promise<void> {
-    const updates = [];
-    const params: any = { id: mediaUnit.id };
+    await dbWriteMutex.runExclusive(async () => {
+        const updates = [];
+        const params: any = { id: mediaUnit.id };
 
-    if (mediaUnit.description) {
-        updates.push('description = $description');
-        params.description = mediaUnit.description;
-    }
-    if (mediaUnit.at_time) {
-        updates.push('at_time = $at_time');
-        params.at_time = mediaUnit.at_time;
-    }
-    if (mediaUnit.path) {
-        updates.push('path = $path');
-        params.path = mediaUnit.path;
-    }
-    // **MODIFIED:** Changed to media_id
-    if (mediaUnit.media_id) {
-        updates.push('media_id = $media_id');
-        params.media_id = mediaUnit.media_id;
-    }
-    if (mediaUnit.embedding) {
-        updates.push(`embedding = CAST($embedding AS FLOAT[${DATABASE_EMBEDDING_DIMENSION}])`);
-        params.embedding = JSON.stringify(mediaUnit.embedding);
-    }
+        if (mediaUnit.description) {
+            updates.push('description = $description');
+            params.description = mediaUnit.description;
+        }
+        if (mediaUnit.at_time) {
+            updates.push('at_time = $at_time');
+            params.at_time = mediaUnit.at_time;
+        }
+        if (mediaUnit.path) {
+            updates.push('path = $path');
+            params.path = mediaUnit.path;
+        }
+        // **MODIFIED:** Changed to media_id
+        if (mediaUnit.media_id) {
+            updates.push('media_id = $media_id');
+            params.media_id = mediaUnit.media_id;
+        }
+        if (mediaUnit.embedding) {
+            updates.push(`embedding = CAST($embedding AS FLOAT[${DATABASE_EMBEDDING_DIMENSION}])`);
+            params.embedding = JSON.stringify(mediaUnit.embedding);
+        }
 
-    if (updates.length > 0) {
-        // **MODIFIED:** Changed table name
-        const sql = `UPDATE media_units SET ${updates.join(', ')} WHERE id = CAST($id AS UUID);`;
-        await connection.run(sql, params);
-        rebuildFtsIndex(connection);
-    }
+        if (updates.length > 0) {
+            // **MODIFIED:** Changed table name
+            const sql = `UPDATE media_units SET ${updates.join(', ')} WHERE id = CAST($id AS UUID);`;
+            await connection.run(sql, params);
+            rebuildFtsIndex(connection);
+        }
+    })
 }
 
 
@@ -133,9 +141,11 @@ export function rebuildFtsIndex(connection: DuckDBConnection, forced = false) {
             clearTimeout(rebuildFTSTimeout);
         }
         rebuildFTSTimeout = setTimeout(async () => {
-            // **MODIFIED:** Changed table name
-            await connection.run(`PRAGMA create_fts_index('media_units', 'id', 'description', overwrite = 1);`);
-            rebuildFTSTimeout = null;
+            await dbWriteMutex.runExclusive(async () => {
+                // **MODIFIED:** Changed table name
+                rebuildFTSTimeout = null;
+                await connection.run(`PRAGMA create_fts_index('media_units', 'id', 'description', overwrite = 1);`);
+            })
         }, 2000);
     }
 }
