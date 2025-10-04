@@ -8,26 +8,7 @@ import { useEffect, useState } from "react";
 import { fileURLToPath } from "url";
 import { getArgv, mediaConfig } from "../utils/config";
 import { logger } from "../utils/logger";
-
-const handleApiRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
-  if (req.url?.startsWith("/api/")) {
-    if (req.url === "/api/v1/status" && req.method === "GET") {
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ status: "running" }));
-      return true; // Indicate that the request was handled
-    }
-    if (req.url === "/api/v1/data" && req.method === "GET") {
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ message: "This is sample data" }));
-      return true; // Indicate that the request was handled
-    }
-
-    res.writeHead(404, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ error: "Not Found" }));
-    return true; // Indicate that the request was handled
-  }
-  return false; // Indicate that the request was not handled
-};
+import { handleApiRequest } from "../server/handler";
 
 
 export default function useAppServer() {
@@ -106,8 +87,10 @@ export default function useAppServer() {
           log(`[Proxy Error] ${err.message}`);
         });
 
-        server = http.createServer((req, res) => {
-          if (handleApiRequest(req, res)) {
+        server = http.createServer(async (req, res) => {
+          // Await the promise to get the actual boolean result
+          const isApiRequestHandled = await handleApiRequest(req, res);
+          if (isApiRequestHandled) {
             return;
           }
 

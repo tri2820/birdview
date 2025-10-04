@@ -306,9 +306,6 @@ export const shortenText = (text: string, maxLength = 100) => {
   return text.slice(0, maxLength) + "...";
 };
 
-export const [cachedImages, setCachedImages] = createStore<
-  Record<string, ArrayBuffer>
->({});
 
 export const [recentSearches, setRecentSearches] = createSignal<string[]>([
   "loading dock",

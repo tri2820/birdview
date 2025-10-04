@@ -217,27 +217,7 @@ export default function MediaServer() {
       ws.on("message", async (message) => {
         const msg = parseMessage(message as any);
 
-        if (msg.header.type === "search") {
-          const query = msg.header.query;
-          console.log(`Received search query from client: ${query}`);
 
-          // Search locally
-          const result = await searchMediaUnitsByDescription(connection, query);
-          console.log(`Search returned ${result.getRowObjectsJson().length} results`);
-          const items = result.getRowObjectsJson();
-          broadcast({
-            header: {
-              type: "search_result",
-              query,
-              result: {
-                items,
-              },
-            },
-            clients: [clients[id]],
-          });
-
-
-        }
 
         if (msg.header.type === "viewing") {
           const streams = msg.header.streams;
@@ -245,25 +225,7 @@ export default function MediaServer() {
         }
 
 
-        if (msg.header.type === "get_image") {
-          const path = msg.header.path;
-          log(`Client requested image: ${path}`);
-          try {
-            const buffer = await fs.readFile(path);
-            const arrayBuffer: ArrayBufferLike = buffer.slice().buffer;
 
-            broadcast({
-              header: {
-                type: "get_image_result",
-                path,
-              },
-              buffer: arrayBuffer,
-              clients: [clients[id]],
-            });
-          } catch (e) {
-            log("Error reading image file: " + e);
-          }
-        }
       });
 
       // This event listener is fired when a client disconnects

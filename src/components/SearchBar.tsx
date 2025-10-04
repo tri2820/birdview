@@ -12,14 +12,9 @@ import {
   Show,
   untrack,
 } from "solid-js";
-import { createMessage } from "../../message";
 import {
-  cachedImages,
   config,
-  latestWsMessage,
-  setCachedImages,
-  setRecentSearches,
-  wsClient
+  setRecentSearches
 } from "../utils";
 
 function NoResultIcon() {
@@ -104,48 +99,42 @@ export default function SearchBar(props?: { variant?: "md" | "lg" }) {
   const [query, setQuery] = createSignal("");
 
   let searchTimeout: any = null;
+  // REFACTORED: Use fetch for search instead of WebSocket
   createEffect(() => {
     const q = query().trim();
     if (searchTimeout) clearTimeout(searchTimeout);
+
     if (q === "") {
       setState({ type: "result", result: { items: [] } });
       return;
     }
+
     setState({ type: "searching", query: q });
-    searchTimeout = setTimeout(() => {
-      const msg = createMessage({ type: "search", query: q });
-      console.log("Sending search message", msg);
-      wsClient?.send(msg);
+
+    searchTimeout = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/v1/search?q=${encodeURIComponent(q)}`);
+        if (!response.ok) {
+          throw new Error("Search request failed");
+        }
+        const data = await response.json();
+
+        setRecentSearches((old) => {
+          const newSearches = [q, ...old.filter((s) => s !== q)];
+          return newSearches.slice(0, 5);
+        });
+
+        setState({
+          type: "result",
+          query: q,
+          result: data,
+        });
+      } catch (error) {
+        console.error("Failed to fetch search results:", error);
+        setState({ type: "result", query: q, result: { items: [] } }); // Show empty result on error
+      }
     }, 500);
   });
-
-  createEffect(() => {
-    const msg = latestWsMessage();
-    if (!msg) return;
-    if (msg.header.type === "search_result") {
-      console.log("Received search result", msg);
-      // if (msg.header.query !== untrack(query)) return; // Ignore old results
-
-      const q = msg.header.query;
-      setRecentSearches((old) => {
-        const newSearches = [q, ...old.filter((s) => s !== q)];
-        return newSearches.slice(0, 5);
-      });
-
-      setState({
-        type: "result",
-        query: msg.header.query,
-        result: msg.header.result,
-      });
-    }
-
-    if (msg.header.type === "get_image_result") {
-      if (!msg.imageBuffer) return;
-      setCachedImages(msg.header.path, msg.imageBuffer);
-    }
-
-  });
-
   onMount(() => {
     const listener = (e: MouseEvent) => {
       const bar = untrack(barRef);
@@ -173,18 +162,8 @@ export default function SearchBar(props?: { variant?: "md" | "lg" }) {
           const name = () =>
             config()?.streams[item().media_id]?.label || item().media_id;
 
-          const imgUrl = () => {
-            if (!cachedImages[item().path]) return null;
-
-            // 1. Create a blob from the ArrayBuffer
-            const blob = new Blob([cachedImages[item().path]], {
-              type: "image/jpeg",
-            });
-
-            // 2. Create an object URL from the blob
-            const imageUrl = URL.createObjectURL(blob);
-            return imageUrl;
-          };
+          // SIMPLIFIED: Image URL is now a direct link to the REST endpoint
+          const imgUrl = () => `/api/v1/image?path=${encodeURIComponent(item().path)}`;
 
           return (
             <div class="fixed h-[100vh] w-[100vw] top-0 left-0  z-[500]">
@@ -279,26 +258,9 @@ export default function SearchBar(props?: { variant?: "md" | "lg" }) {
                             config()?.streams[item.media_id]?.label ??
                             item.media_id;
 
-                          const imgUrl = () => {
-                            if (!cachedImages[item.path]) return null;
 
-                            // 1. Create a blob from the ArrayBuffer
-                            const blob = new Blob([cachedImages[item.path]], {
-                              type: "image/jpeg",
-                            });
+                          const imgUrl = () => `/api/v1/image?path=${encodeURIComponent(item.path)}`;
 
-                            // 2. Create an object URL from the blob
-                            const imageUrl = URL.createObjectURL(blob);
-                            return imageUrl;
-                          };
-
-                          if (!imgUrl()) {
-                            const msg = createMessage({
-                              type: "get_image",
-                              path: item.path,
-                            });
-                            wsClient?.send(msg);
-                          }
 
                           const desc = () => {
                             const removePrefixes = [
