@@ -14,9 +14,9 @@ import {
 } from "solid-icons/fi";
 import { createSignal, For, onMount, Show } from "solid-js";
 import { config, setTabId, tabId, TabId } from "../utils";
-import { ConfigViewItem } from "../../config";
 
-function SideBarViewItem(props: { view: ConfigViewItem }) {
+
+function SideBarViewItem(props: { view: any }) {
   // TODO: persist open state
   const [isOpen, setIsOpen] = createSignal(true);
 

@@ -1,12 +1,9 @@
 import { Box, Text } from "ink";
-import useDevServer from "./useDevServer";
 import useProdServer from "./useProdServer";
 import React from "react";
 
 export default function FrontendServer() {
-  const frontend = (
-    process.env.NODE_ENV == "dev" ? useDevServer : useProdServer
-  )();
+  const frontend = useProdServer();
 
   return (
     <Box

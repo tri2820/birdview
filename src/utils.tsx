@@ -2,7 +2,6 @@ import { IconTypes } from "solid-icons";
 import * as allBsIcons from "solid-icons/bs";
 import * as allFaIcons from "solid-icons/fa";
 import { batch, Component, createSignal } from "solid-js";
-import { AppConfig } from "../config";
 import { WsHeader } from "../definitions";
 import { createStore } from "solid-js/store";
 
@@ -106,7 +105,7 @@ export const buildMarks = (range: TimeRange) => {
   return [...result, ...minorMarks];
 };
 
-export const [config, setConfig] = createSignal<AppConfig>();
+export const [config, setConfig] = createSignal<any>();
 
 export type TabId =
   | {
@@ -276,11 +275,13 @@ export function setupWs() {
   // This tells the WebSocket to provide the data as an ArrayBuffer, not a Blob.
   _socket.binaryType = "arraybuffer";
 
+  console.log("Connecting to WebSocket server...");
   _socket.addEventListener("open", () => {
     console.log("Connected to WebSocket server");
   });
 
   _socket.addEventListener("message", (event) => {
+    console.log('Received WebSocket message', event.data);
     const message = parseWsMessage(event.data);
     setLatestWsMessage(message);
 

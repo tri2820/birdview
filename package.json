@@ -11,7 +11,7 @@
     "dist"
   ],
   "scripts": {
-    "dev": "NODE_ENV=dev bun cli/entry.tsx",
+    "dev": "bun cli/entry.tsx -- --dev",
     "start": "bun cli/dist/entry.js",
     "build": "bun run build:cli && vite build",
     "build:cli": "bun run ./build.cli.ts",

@@ -2,12 +2,11 @@ import { Box, Text } from "ink";
 import React, { useEffect, useState } from "react";
 import { AV_LOG_WARNING, Log } from "node-av";
 import { WebSocket, WebSocketServer } from "ws";
-import { mediaConfig } from "../../config";
+
 import { WsHeader } from "../../definitions";
 import { saveFrame } from "../utils/indexing";
 import { logger } from "../utils/logger";
 import { ForwardMessage, forwardStream } from "../utils/startForward";
-
 import { createMessage, parseMessage } from "../../message";
 import {
   addMediaUnit,
@@ -17,6 +16,7 @@ import {
 import fs from "fs/promises";
 import { WsClient, WsClientWrapper } from "../utils/ws_utils";
 import { connection } from "../utils/conn";
+import { mediaConfig } from "../utils/config";
 
 export default function MediaServer() {
   const [output, setOutput] = useState<string[]>([]);
@@ -33,7 +33,6 @@ export default function MediaServer() {
     clients: WsClient[];
   }) {
     let finalMessage: Buffer | string = createMessage(opts.header, opts.buffer);
-
     opts.clients.forEach((client) => {
       try {
         if (opts.header.type === "frame") {
@@ -170,13 +169,14 @@ export default function MediaServer() {
 
     // This event listener is fired when a new client connects to the server
     wss.on("connection", (ws, req) => {
-      log("New client connected.");
+      const id = crypto.randomUUID();
+      log("New client connected.", id);
 
       // You can get the client's IP address from the request object
       const ip = req.socket.remoteAddress;
       log(`Client IP: ${ip}`);
 
-      const id = crypto.randomUUID();
+
 
       clients[id] = {
         id,
@@ -185,6 +185,7 @@ export default function MediaServer() {
         viewing_streams: {},
         state: {},
       };
+
 
       // Send config to the new client
       broadcast({
@@ -240,7 +241,6 @@ export default function MediaServer() {
 
         if (msg.header.type === "viewing") {
           const streams = msg.header.streams;
-          console.log("Client is viewing", streams);
           clients[id].viewing_streams = streams;
         }
 

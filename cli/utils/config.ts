@@ -29,18 +29,29 @@ type GetConfigOpts = {
   from_env?: boolean;
 };
 
-function getConfigPath(opts?: GetConfigOpts) {
-  const from_env = opts?.from_env ?? true;
-  const from_flags = opts?.from_flags ?? true;
+export function getArgv() {
 
-  // Parse command line flags using yargs
   const argv = yargs(hideBin(process.argv))
+    .version(process.env.APP_VERSION as string) // Use the injected version
     .option("config", {
       alias: "c",
       type: "string",
       description: "Path to config file",
     })
+    .option('dev', {
+      type: 'boolean',
+      description: 'Run the application in development mode (starts Vite)',
+      default: false, // Default to production
+    })
     .parseSync();
+  return argv;
+}
+
+function getConfigPath(opts?: GetConfigOpts) {
+  const from_env = opts?.from_env ?? true;
+  const from_flags = opts?.from_flags ?? true;
+
+  const argv = getArgv();
 
   let configPath: string | undefined = undefined;
   if (from_flags) {
@@ -92,11 +103,5 @@ export function getConfig(opts?: GetConfigOpts) {
   return config;
 }
 
-// Only get config from env var BV_CONFIG_PATH
-// This would be passed when spawning vite process
-export const viteProcessConfig = getConfig({
-  from_flags: false,
-  from_env: true,
-});
-
 export const mediaConfig = getConfig();
+

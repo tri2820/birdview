@@ -1,4 +1,4 @@
-import { AppConfig } from "./config";
+
 export type WsHeader =
   | {
     type: "frame";
@@ -15,7 +15,7 @@ export type WsHeader =
   }
   | {
     type: "config";
-    data: AppConfig;
+    data: any;
   } | {
     type: "search_result";
     query: string;
