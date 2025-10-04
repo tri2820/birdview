@@ -281,7 +281,6 @@ export function setupWs() {
   });
 
   _socket.addEventListener("message", (event) => {
-    console.log('Received WebSocket message', event.data);
     const message = parseWsMessage(event.data);
     setLatestWsMessage(message);
 

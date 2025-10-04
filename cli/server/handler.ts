@@ -1,21 +1,19 @@
-// src/server/utils/apiHandler.ts (or wherever you placed it)
 import http from "http";
-import { URL } from "url";
-
 import fs from "fs/promises";
-import path from "path";
 import mime from "mime-types";
+import { URL } from "url";
 import { searchMediaUnitsByDescription } from "../utils/database";
 import { connection } from "../utils/conn";
 
 export const handleApiRequest = async (
     req: http.IncomingMessage,
     res: http.ServerResponse
-) => {
+): Promise<boolean> => {
     if (!req.url) {
         return false;
     }
 
+    // Use URL constructor for robust parsing of path and query params
     const requestUrl = new URL(req.url, `http://${req.headers.host}`);
     const pathname = requestUrl.pathname;
 
@@ -34,7 +32,6 @@ export const handleApiRequest = async (
                 return true;
             }
 
-            console.log(`Received search query: ${query}`);
             const result = await searchMediaUnitsByDescription(connection, query);
             const items = result.getRowObjectsJson();
 
@@ -51,27 +48,57 @@ export const handleApiRequest = async (
                 return true;
             }
 
-            // WARNING: In a production environment, you MUST validate and sanitize this path
+            // SECURITY WARNING: In production, you must validate this path
             // to prevent directory traversal attacks.
-            // e.g., ensure it's within a specific allowed media directory.
-
             try {
                 const buffer = await fs.readFile(imagePath);
                 const contentType = mime.lookup(imagePath) || "application/octet-stream";
                 res.writeHead(200, { "Content-Type": contentType });
                 res.end(buffer);
             } catch (e) {
-                console.error("Error reading image file:", e);
                 res.writeHead(404, { "Content-Type": "application/json" });
                 res.end(JSON.stringify({ error: "Image not found" }));
             }
             return true;
         }
 
+        // --- NEW: Summarize Endpoint Implementation ---
+        if (pathname === "/api/v1/summarize" && req.method === "GET") {
+            const query = requestUrl.searchParams.get("q");
+            if (!query) {
+                res.writeHead(400, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: "Missing search query 'q'" }));
+                return true;
+            }
+
+            // 1. Get search results
+            const searchResult = await searchMediaUnitsByDescription(connection, query);
+            const allItems = searchResult.getRowObjectsJson();
+
+            // 2. Get the top 10 rows
+            const top10Items = allItems.slice(0, 10);
+
+            // 3. TODO: Implement actual model summarization logic
+            // For now, we'll return a placeholder summary.
+            const summaryText = `Placeholder summary for: "${query}". Based on the top ${top10Items.length} most relevant results.`;
+
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(
+                JSON.stringify({
+                    summary: summaryText,
+                    source_items: top10Items, // Return the top 10 items as sources
+                })
+            );
+            return true;
+        }
+        // --- End of New Endpoint ---
+
+        // If no API route matches, return 404
         res.writeHead(404, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "Not Found" }));
+        res.end(JSON.stringify({ error: "API Endpoint Not Found" }));
         return true;
     }
 
+    // If not an API request, indicate it was not handled
     return false;
 };

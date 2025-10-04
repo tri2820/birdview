@@ -241,8 +241,10 @@ export default function SearchBar(props?: { variant?: "md" | "lg" }) {
                   <div class="flex-1 h-full flex flex-col">
                     <div class="flex-none px-4 border-b border-neutral-800 py-2">
                       <button
-                        onClick={() => {
-
+                        onClick={async () => {
+                          const summary = await fetch(`/api/v1/summarize?q=${encodeURIComponent(query().trim())}`);
+                          const data = await summary.json();
+                          console.log(data);
                         }}
                         class="btn-secondary"
                       >
