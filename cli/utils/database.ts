@@ -93,36 +93,40 @@ export async function updateMediaUnit(connection: DuckDBConnection, mediaUnit: {
     embedding?: number[];
 }): Promise<void> {
     await dbWriteMutex.runExclusive(async () => {
-        const updates = [];
-        const params: any = { id: mediaUnit.id };
+        try {
+            const updates = [];
+            const params: any = { id: mediaUnit.id };
 
-        if (mediaUnit.description) {
-            updates.push('description = $description');
-            params.description = mediaUnit.description;
-        }
-        if (mediaUnit.at_time) {
-            updates.push('at_time = $at_time');
-            params.at_time = mediaUnit.at_time;
-        }
-        if (mediaUnit.path) {
-            updates.push('path = $path');
-            params.path = mediaUnit.path;
-        }
-        // **MODIFIED:** Changed to media_id
-        if (mediaUnit.media_id) {
-            updates.push('media_id = $media_id');
-            params.media_id = mediaUnit.media_id;
-        }
-        if (mediaUnit.embedding) {
-            updates.push(`embedding = CAST($embedding AS FLOAT[${DATABASE_EMBEDDING_DIMENSION}])`);
-            params.embedding = JSON.stringify(mediaUnit.embedding);
-        }
+            if (mediaUnit.description) {
+                updates.push('description = $description');
+                params.description = mediaUnit.description;
+            }
+            if (mediaUnit.at_time) {
+                updates.push('at_time = $at_time');
+                params.at_time = mediaUnit.at_time;
+            }
+            if (mediaUnit.path) {
+                updates.push('path = $path');
+                params.path = mediaUnit.path;
+            }
+            // **MODIFIED:** Changed to media_id
+            if (mediaUnit.media_id) {
+                updates.push('media_id = $media_id');
+                params.media_id = mediaUnit.media_id;
+            }
+            if (mediaUnit.embedding) {
+                updates.push(`embedding = CAST($embedding AS FLOAT[${DATABASE_EMBEDDING_DIMENSION}])`);
+                params.embedding = JSON.stringify(mediaUnit.embedding);
+            }
 
-        if (updates.length > 0) {
-            // **MODIFIED:** Changed table name
-            const sql = `UPDATE media_units SET ${updates.join(', ')} WHERE id = CAST($id AS UUID);`;
-            await connection.run(sql, params);
-            rebuildFtsIndex(connection);
+            if (updates.length > 0) {
+                // **MODIFIED:** Changed table name
+                const sql = `UPDATE media_units SET ${updates.join(', ')} WHERE id = CAST($id AS UUID);`;
+                await connection.run(sql, params);
+                rebuildFtsIndex(connection);
+            }
+        } catch (error) {
+            console.error("Error updating media unit:", error);
         }
     })
 }
@@ -142,9 +146,13 @@ export function rebuildFtsIndex(connection: DuckDBConnection, forced = false) {
         }
         rebuildFTSTimeout = setTimeout(async () => {
             await dbWriteMutex.runExclusive(async () => {
-                // **MODIFIED:** Changed table name
-                rebuildFTSTimeout = null;
-                await connection.run(`PRAGMA create_fts_index('media_units', 'id', 'description', overwrite = 1);`);
+                try {
+                    // **MODIFIED:** Changed table name
+                    rebuildFTSTimeout = null;
+                    await connection.run(`PRAGMA create_fts_index('media_units', 'id', 'description', overwrite = 1);`);
+                } catch (error) {
+                    console.error("Error rebuilding FTS index:", error);
+                }
             })
         }, 2000);
     }

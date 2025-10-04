@@ -58,3 +58,8 @@ body {
 .btn-primary {
   @apply flex items-center space-x-2 text-neutral-400 hover:text-white transition-all duration-100 bg-neutral-900 hover:bg-neutral-950 border border-neutral-800/0 hover:border-neutral-800 px-4 py-2 rounded-lg
 }
+
+.btn-secondary {
+  @apply flex items-center space-x-2 text-neutral-400 hover:text-white transition-all duration-100 bg-neutral-900 hover:bg-neutral-800 border 
+  border-neutral-800 hover:border-neutral-700 hover:drop-shadow-2xl px-4 py-2 rounded-lg
+}
