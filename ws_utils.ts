@@ -3,6 +3,11 @@ export type WsClient = {
     id: string;
     ip: string | undefined;
     ws: WebSocket;
+    viewing_streams: {
+        [stream_id: string]: {
+            priority: number;
+        }
+    }
 };
 
 // So that we can queue messages if the client is not ready

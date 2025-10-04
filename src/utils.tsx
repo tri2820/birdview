@@ -5,6 +5,7 @@ import { batch, Component, createSignal } from "solid-js";
 import { AppConfig } from "../config";
 import { WsHeader } from "../definitions";
 import { createStore } from "solid-js/store";
+import { WsClientWrapper } from "../ws_utils";
 
 export function notEmpty<TValue>(
   value: TValue | null | undefined
@@ -109,16 +110,16 @@ export const [config, setConfig] = createSignal<AppConfig>();
 
 export type TabId =
   | {
-      type: "stream";
-      stream_id: string;
-    }
+    type: "stream";
+    stream_id: string;
+  }
   | {
-      type: "home" | "statistics" | "moments";
-    }
+    type: "home" | "statistics" | "moments";
+  }
   | {
-      type: "multiview";
-      stream_ids: string[];
-    };
+    type: "multiview";
+    stream_ids: string[];
+  };
 
 export const [tabId, _setTabId] = createSignal<TabId>({
   type: "home",
@@ -236,20 +237,20 @@ export const setGlobalState = (...args: any[]) => {
   });
 };
 
-export let socket: WebSocket | null = null;
+export let wsClient: WsClientWrapper | null = null;
 export function setupWs() {
   // Connect to websocket server
-  socket = new WebSocket("/ws");
+  const _socket = new WebSocket("/ws");
 
   // IMPORTANT: Set the binaryType to 'arraybuffer'
   // This tells the WebSocket to provide the data as an ArrayBuffer, not a Blob.
-  socket.binaryType = "arraybuffer";
+  _socket.binaryType = "arraybuffer";
 
-  socket.addEventListener("open", () => {
+  _socket.addEventListener("open", () => {
     console.log("Connected to WebSocket server");
   });
 
-  socket.addEventListener("message", (event) => {
+  _socket.addEventListener("message", (event) => {
     const message = parseWsMessage(event.data);
     setLatestWsMessage(message);
 
@@ -258,15 +259,15 @@ export function setupWs() {
     }
   });
 
-  socket.addEventListener("close", () => {
+  _socket.addEventListener("close", () => {
     console.log("Disconnected from WebSocket server");
   });
 
-  socket.addEventListener("error", (error) => {
+  _socket.addEventListener("error", (error) => {
     console.error("WebSocket error: ", error);
   });
 
-  return socket;
+  wsClient = new WsClientWrapper(_socket as any);
 }
 
 export const shortenText = (text: string, maxLength = 100) => {

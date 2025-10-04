@@ -16,8 +16,7 @@
     "build": "bun run build:cli && vite build",
     "build:cli": "bun run ./build.cli.ts",
     "serve": "vite preview",
-    "cli": "bun cli/entry.tsx",
-    "prepare": "bun run build"
+    "cli": "bun cli/entry.tsx"
   },
   "publishConfig": {
     "access": "public"
@@ -25,12 +24,14 @@
   "license": "MIT",
   "dependencies": {
     "@duckdb/node-api": "^1.4.0-r.2",
+    "@duckdb/node-bindings-linux-arm64": "^1.4.0-r.2",
     "@solid-primitives/resize-observer": "^2.1.3",
     "@types/bun": "^1.2.22",
     "@types/mime-types": "^3.0.1",
     "@types/ws": "^8.18.1",
     "@types/yargs": "^17.0.33",
     "apache-arrow": "^21.0.0",
+    "date-fns": "^4.1.0",
     "http-proxy": "^1.18.1",
     "ink": "^6.3.1",
     "mime-types": "^3.0.1",

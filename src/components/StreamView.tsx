@@ -4,12 +4,13 @@ import {
   BsGearFill,
   BsInfoCircleFill,
 } from "solid-icons/bs";
-import { Accessor } from "solid-js";
-import { EventBar } from "./EventBar";
+import { Accessor, onMount } from "solid-js";
 import SearchBar from "./SearchBar";
 import useVideoPlayer from "./useVideoPlayer";
 import useWsVideo from "./useWsVideo";
 import GoBackButton from "./GoBackButton";
+import { config, wsClient } from "../utils";
+import { createMessage } from "../../message";
 
 export default function StreamView(props: {
   sidebar: any;
@@ -17,6 +18,17 @@ export default function StreamView(props: {
 }) {
   const videoPlayer = useVideoPlayer();
   useWsVideo({ id: props.id, videoPlayer });
+
+  const name = () => config()?.streams?.[props.id()]?.label || props.id();
+
+  onMount(() => {
+    const b = createMessage({
+      type: "viewing", streams: {
+        [props.id()]: { priority: 1 }
+      }
+    });
+    wsClient?.send(b);
+  })
 
   return (
     <div class="h-screen flex flex-col">
@@ -28,7 +40,7 @@ export default function StreamView(props: {
             <GoBackButton />
 
             <button class="flex items-center space-x-2 text-neutral-400 hover:text-white px-2 h-12">
-              <div class="text-xs  font-semibold">SSA MARINE MIT SW Cam</div>
+              <div class="text-xs  font-semibold">{name()}</div>
               <BsChevronDown class="w-4 h-4" />
             </button>
 

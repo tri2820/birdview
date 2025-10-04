@@ -1,25 +1,19 @@
-import { Match, onCleanup, onMount, Switch } from "solid-js";
-import StreamView from "./components/StreamView";
-import SideBar from "./components/SideBar";
-import {
-  parseWsMessage,
-  setConfig,
-  setLatestWsMessage,
-  setTabId,
-  setupWs,
-  tabId,
-} from "./utils";
-import TabLayout from "./components/TabLayout";
+import { createEffect, Match, onMount, Switch } from "solid-js";
+import { createMessage } from "../message";
 import HomeMain from "./components/HomeMain";
 import MultiView from "./components/MultiView";
+import SideBar from "./components/SideBar";
+import StreamView from "./components/StreamView";
+import TabLayout from "./components/TabLayout";
+import {
+  setupWs,
+  tabId,
+  wsClient
+} from "./utils";
 
 export default function App() {
   onMount(() => {
-    const socket = setupWs();
-    onCleanup(() => {
-      console.log("Closing WebSocket connection.");
-      socket.close();
-    });
+    setupWs();
   });
 
   const sidebar = <SideBar />;

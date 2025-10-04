@@ -6,7 +6,11 @@ import { DATABASE_PATH } from '../../definitions';
  * Initializes the database and creates the table schema.
  */
 export async function initializeDatabase(overwrite = false): Promise<DuckDBConnection> {
-    if (overwrite) {
+
+    // check exists
+    const exists = await fs.stat(DATABASE_PATH).then(() => true).catch(() => false);
+
+    if (exists && overwrite) {
         try {
             await fs.unlink(DATABASE_PATH);
         } catch (err) {
@@ -17,7 +21,7 @@ export async function initializeDatabase(overwrite = false): Promise<DuckDBConne
     const instance = await DuckDBInstance.create(DATABASE_PATH);
     const connection = await instance.connect();
 
-    if (overwrite) {
+    if (overwrite || !exists) {
         await connection.run('INSTALL fts;');
         await connection.run('LOAD fts;');
 

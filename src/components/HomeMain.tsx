@@ -3,11 +3,12 @@ import {
   FaSolidDisplay,
   FaSolidExpand,
 } from "solid-icons/fa";
-import { Accessor, For } from "solid-js";
+import { Accessor, For, onMount } from "solid-js";
 import SearchBar from "./SearchBar";
 import useWsVideo from "./useWsVideo";
 import useVideoPlayer from "./useVideoPlayer";
-import { config, recentSearches, setTabId } from "../utils";
+import { config, recentSearches, setTabId, wsClient } from "../utils";
+import { createMessage } from "../../message";
 
 function StreamItem(props: { id: Accessor<string> }) {
   const videoPlayer = useVideoPlayer({ fit: "cover" });
@@ -27,6 +28,17 @@ function StreamItem(props: { id: Accessor<string> }) {
 
 export default function HomeMain() {
   const streams = () => Object.keys(config()?.streams || {});
+
+  onMount(() => {
+    console.log("HomeMain mounted");
+    const streams = config()?.streams || {};
+    let subscribedStreams: any = {};
+    for (const key of Object.keys(streams)) {
+      subscribedStreams[key] = { priority: 0.1 };
+    }
+    const b = createMessage({ type: "viewing", streams: subscribedStreams });
+    wsClient?.send(b);
+  })
 
   return (
     // Added `isolate` to create a new stacking context. This is important!

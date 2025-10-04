@@ -1,7 +1,7 @@
 {
-  "port": 3000,
+  "port": 3010,
   "media_server": {
-    "port": 8000
+    "port": 8050
   },
   "streams": {
     "camera-1": {

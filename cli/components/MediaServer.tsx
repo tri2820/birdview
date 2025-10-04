@@ -7,7 +7,7 @@ import { WsHeader } from "../../definitions";
 import { saveFrame } from "../utils/indexing";
 import { logger } from "../utils/logger";
 import { ForwardMessage, forwardStream } from "../utils/startForward";
-import { WsClient, WsClientWrapper } from "../utils/ws_utils";
+import { WsClient, WsClientWrapper } from "../../ws_utils";
 import { createMessage, parseMessage } from "../../message";
 import {
   addFrame,
@@ -35,7 +35,15 @@ export default function MediaServer() {
 
     opts.clients.forEach((client) => {
       try {
-        client.ws.send(finalMessage);
+        if (opts.header.type === "frame") {
+          // Reduce frequency to 10% for clients viewing home
+          const subscription = client.viewing_streams[opts.header.stream_id] ?? { priority: 0 };
+          if (Math.random() < subscription.priority) {
+            client.ws.send(finalMessage);
+          }
+        } else {
+          client.ws.send(finalMessage);
+        }
       } catch (e) {
         log("Error broadcasting to client: " + e);
         clients = Object.fromEntries(
@@ -82,13 +90,8 @@ export default function MediaServer() {
     // e.g. motion, object detected, scene change, etc.
     // Here, send every X seconds as a placeholder
     if (Date.now() - backendState[stream_id].lastSentTime > 5000) {
-      log("Sending frame to backend for indexing");
       backendState[stream_id].lastSentTime = Date.now();
-
       backendClient?.send(message);
-
-      // Also save the frame to disk
-      log("Saving frame to disk");
       const result = await saveFrame(id, msg.buffer);
 
       // Add to database
@@ -114,7 +117,6 @@ export default function MediaServer() {
         forwardToBackend(stream_id, id, msg);
 
         if (msg.type === "frame") {
-          // Forward frame messages to clients
           broadcast({
             header: { type: "frame", stream_id, id },
             buffer: msg.buffer,
@@ -164,6 +166,7 @@ export default function MediaServer() {
         id,
         ip,
         ws,
+        viewing_streams: {},
       };
 
       // Send config to the new client
@@ -198,8 +201,9 @@ export default function MediaServer() {
 
         if (msg.header.type === "search") {
           const query = msg.header.query;
-          log(`Received search query from client: ${query}`);
+          console.log(`Received search query from client: ${query}`);
           const result = await searchFramesByDescription(connection, query);
+          console.log(`Search returned ${result.getRowObjectsJson().length} results`);
           const items = result.getRowObjectsJson();
           broadcast({
             header: {
@@ -212,6 +216,13 @@ export default function MediaServer() {
             clients: [clients[id]],
           });
         }
+
+        if (msg.header.type === "viewing") {
+          const streams = msg.header.streams;
+          console.log("Client is viewing home", id);
+          clients[id].viewing_streams = streams;
+        }
+
 
         if (msg.header.type === "get_image") {
           const path = msg.header.path;
@@ -247,7 +258,7 @@ export default function MediaServer() {
 
     log(
       "WebSocket server is running on ws://localhost:" +
-        mediaConfig.media_server.port
+      mediaConfig.media_server.port
     );
   }
 

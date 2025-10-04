@@ -1,9 +1,10 @@
 import { FaSolidArrowLeft, FaSolidExpand } from "solid-icons/fa";
-import { Accessor, For } from "solid-js";
-import { config, goBackTabId, setTabId, tabId } from "../utils";
+import { Accessor, For, onMount } from "solid-js";
+import { config, goBackTabId, setTabId, tabId, wsClient } from "../utils";
 import useVideoPlayer from "./useVideoPlayer";
 import useWsVideo from "./useWsVideo";
 import GoBackButton from "./GoBackButton";
+import { createMessage } from "../../message";
 
 function StreamItem(props: { id: Accessor<string> }) {
   const videoPlayer = useVideoPlayer();
@@ -24,19 +25,29 @@ function StreamItem(props: { id: Accessor<string> }) {
 }
 
 export default function MultiView() {
-  const streamIds = () => (tabId() as any).stream_ids ?? [];
+  const streamIds: () => string[] = () => (tabId() as any).stream_ids ?? [];
 
   const numCols = () => {
     const n = streamIds().length;
     return Math.min(4, Math.ceil(Math.sqrt(n)));
   };
 
+  onMount(() => {
+    const b = createMessage({
+      type: "viewing", streams: streamIds().reduce((acc: Record<string, { priority: number }>, id) => {
+        acc[id] = { priority: 1 };
+        return acc;
+      }, {})
+    });
+    wsClient?.send(b);
+  })
+
   return (
     <div class="h-full flex flex-col">
       <div class="flex-none px-2 py-2 flex items-center space-x-2">
         <GoBackButton />
 
-        <button onClick={() => {}} class="btn-primary">
+        <button onClick={() => { }} class="btn-primary">
           <FaSolidExpand class="w-4 h-4" />
           <div class="font-bold text-sm">Fullscreen</div>
         </button>

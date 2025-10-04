@@ -8,6 +8,7 @@ export default defineConfig({
   plugins: [devtools(), solidPlugin(), tailwindcss()],
   server: {
     port: viteProcessConfig.port,
+    allowedHosts: ['demo.zapdoslabs.com'],
     proxy: {
       "/ws": {
         target: `ws://localhost:${viteProcessConfig.media_server.port}`,
