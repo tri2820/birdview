@@ -10,9 +10,9 @@ import { ForwardMessage, forwardStream } from "../utils/startForward";
 
 import { createMessage, parseMessage } from "../../message";
 import {
-  addFrame,
-  searchFramesByDescription,
-  updateFrame,
+  addMediaUnit,
+  searchMediaUnitsByDescription,
+  updateMediaUnit,
 } from "../utils/database";
 import fs from "fs/promises";
 import { WsClient, WsClientWrapper } from "../utils/ws_utils";
@@ -113,13 +113,14 @@ export default function MediaServer() {
       const result = await saveFrame(id, msg.buffer);
 
       // Add to database
-      await addFrame(connection, {
+      await addMediaUnit(connection, {
         id,
         at_time: new Date().toISOString(),
         // Empty description for now, will be updated by backend result
         description: "",
         path: result.filepath,
-        stream_id,
+        media_id: stream_id,
+        embedding: []
       });
     }
   }
@@ -221,7 +222,9 @@ export default function MediaServer() {
         if (msg.header.type === "search") {
           const query = msg.header.query;
           console.log(`Received search query from client: ${query}`);
-          const result = await searchFramesByDescription(connection, query);
+
+          // Search locally
+          const result = await searchMediaUnitsByDescription(connection, query);
           console.log(`Search returned ${result.getRowObjectsJson().length} results`);
           const items = result.getRowObjectsJson();
           broadcast({
@@ -234,6 +237,8 @@ export default function MediaServer() {
             },
             clients: [clients[id]],
           });
+
+
         }
 
         if (msg.header.type === "viewing") {
@@ -323,7 +328,7 @@ export default function MediaServer() {
 
         if (data.type === 'image_description_result') {
           try {
-            await updateFrame(connection, {
+            await updateMediaUnit(connection, {
               id: data.id,
               description: data.description,
             });

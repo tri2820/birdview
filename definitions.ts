@@ -31,3 +31,4 @@ export type WsHeader =
 
 // Relative to this file
 export const DATABASE_PATH = '/home/tri/app.db';
+export const DATABASE_EMBEDDING_DIMENSION = 2048; // Must match the dimension used in the embedding model
