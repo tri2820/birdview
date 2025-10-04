@@ -116,11 +116,8 @@ export default function MediaServer() {
       await addMediaUnit(connection, {
         id,
         at_time: new Date().toISOString(),
-        // Empty description for now, will be updated by backend result
-        description: "",
         path: result.filepath,
         media_id: stream_id,
-        embedding: []
       });
     }
   }
