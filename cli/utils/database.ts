@@ -1,24 +1,23 @@
 import { DuckDBConnection, DuckDBInstance, uuidValue } from '@duckdb/node-api';
 import fs from 'fs/promises';
-import { DATABASE_PATH } from '../../definitions';
 
 /**
  * Initializes the database and creates the table schema.
  */
-export async function initializeDatabase(overwrite = false): Promise<DuckDBConnection> {
-
+export async function initializeDatabase(path: string, overwrite = false): Promise<DuckDBConnection> {
+    console.log(`Initializing database at ${path}...`);
     // check exists
-    const exists = await fs.stat(DATABASE_PATH).then(() => true).catch(() => false);
+    const exists = await fs.stat(path).then(() => true).catch(() => false);
 
     if (exists && overwrite) {
         try {
-            await fs.unlink(DATABASE_PATH);
+            await fs.unlink(path);
         } catch (err) {
             // Ignore if file does not exist
         }
     }
 
-    const instance = await DuckDBInstance.create(DATABASE_PATH);
+    const instance = await DuckDBInstance.create(path);
     const connection = await instance.connect();
 
     if (overwrite || !exists) {
@@ -159,69 +158,3 @@ export async function searchFramesByDescription(connection: DuckDBConnection, qu
     return results;
 }
 
-export const connection = await initializeDatabase();
-
-// If this file is run directly, execute the code block to demonstrate the correct workflow
-if (require.main === module) {
-    let connection: DuckDBConnection | null = null;
-
-    (async () => {
-        try {
-            connection = await initializeDatabase(true); // Overwrite existing database for demo purposes
-
-            // console.log("Adding sample frames...");
-            // await addFrame(connection, {
-            //     id: crypto.randomUUID(),
-            //     at_time: new Date().toISOString(),
-            //     description: 'A person is working on a computer',
-            //     path: '/media/frames/001.jpg',
-            //     stream_id: 'a1b2c3d4-e5f6-7890-1234-567890abcdef'
-            // });
-            // const dogFrameId = crypto.randomUUID()addFra
-            // await addFrame(connection, {
-            //     description: 'A dog is chasing a ball in the park',
-            //     path: '/media/frames/002.jpg',
-            //     stream_id: 'b2c3d4e5-f6a7-8901-2345-67890abcdef1',
-            //     id: dogFrameId,
-            //     at_time: new Date().toISOString(),
-            // });
-            // await addFrame(connection, {
-            //     id: crypto.randomUUID(),
-            //     at_time: new Date().toISOString(),
-            //     description: 'A person is walking on the street',
-            //     path: '/media/frames/003.jpg',
-            //     stream_id: 'a1b2c3d4-e5f6-7890-1234-567890abcdef'
-            // });
-
-            // console.log("\nRebuilding FTS index to include new data...")
-            // rebuildFtsIndex(connection, true); // Force immediate rebuild
-
-            // console.log("\nSearching for 'person':");
-            // const personResults = await searchFramesByDescription(connection, 'person');
-            // console.log(personResults);
-
-            // console.log("\nSearching for 'dog park':");
-            // const dogResults = await searchFramesByDescription(connection, 'dog park');
-            // console.log(dogResults);
-
-            // console.log("\nUpdating dog frame description...");
-            // await updateFrame(connection, {
-            //     id: dogFrameId,
-            //     description: 'A happy dog is chasing a red ball in the park'
-            // });
-
-            // console.log("\nRebuilding FTS index after update...")
-            // rebuildFtsIndex(connection, true); // Force immediate rebuild
-
-            // console.log("\nSearching for 'happy dog':");
-            // const happyDogResults = await searchFramesByDescription(connection, 'happy dog');
-            // console.log(happyDogResults);
-
-
-        } catch (error) {
-            console.error("\nAn error occurred:", error);
-        } finally {
-            await closeConnection(connection!);
-        }
-    })();
-}

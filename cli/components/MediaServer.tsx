@@ -11,12 +11,12 @@ import { ForwardMessage, forwardStream } from "../utils/startForward";
 import { createMessage, parseMessage } from "../../message";
 import {
   addFrame,
-  connection,
   searchFramesByDescription,
   updateFrame,
 } from "../utils/database";
 import fs from "fs/promises";
 import { WsClient, WsClientWrapper } from "../utils/ws_utils";
+import { connection } from "../utils/conn";
 
 export default function MediaServer() {
   const [output, setOutput] = useState<string[]>([]);
@@ -319,26 +319,24 @@ export default function MediaServer() {
       };
 
       backendWs.onmessage = async (event) => {
-        const data: {
-          type: "index_result";
-          id: string;
-          description: string;
-        } = parseMessage(event.data as any).header as any;
+        const data = parseMessage(event.data as any).header as any;
 
-        // TODO: update database
-        try {
-          await updateFrame(connection, {
-            id: data.id,
-            description: data.description,
-          });
-        } catch (e) {
-          console.error(
-            "Failed to update frame with backend result:",
-            e,
-            event,
-            event.data
-          );
+        if (data.type === 'image_description_result') {
+          try {
+            await updateFrame(connection, {
+              id: data.id,
+              description: data.description,
+            });
+          } catch (e) {
+            console.error(
+              "Failed to update frame with backend result:",
+              e,
+              event,
+              event.data
+            );
+          }
         }
+
       };
 
       backendWs.onerror = (err) => {
