@@ -1,5 +1,5 @@
 import { FaSolidArrowLeft, FaSolidExpand } from "solid-icons/fa";
-import { Accessor, For, onMount } from "solid-js";
+import { Accessor, createEffect, For, onMount } from "solid-js";
 import { config, goBackTabId, setTabId, tabId, wsClient } from "../utils";
 import useVideoPlayer from "./useVideoPlayer";
 import useWsVideo from "./useWsVideo";
@@ -32,10 +32,11 @@ export default function MultiView() {
     return Math.min(4, Math.ceil(Math.sqrt(n)));
   };
 
-  onMount(() => {
+  createEffect(() => {
     const b = createMessage({
       type: "viewing", streams: streamIds().reduce((acc: Record<string, { priority: number }>, id) => {
-        acc[id] = { priority: 1 };
+        // 2 is FULL FPS
+        acc[id] = { priority: 2 };
         return acc;
       }, {})
     });

@@ -5,7 +5,7 @@ import { batch, Component, createSignal } from "solid-js";
 import { AppConfig } from "../config";
 import { WsHeader } from "../definitions";
 import { createStore } from "solid-js/store";
-import { WsClientWrapper } from "../ws_utils";
+
 
 export function notEmpty<TValue>(
   value: TValue | null | undefined
@@ -237,6 +237,34 @@ export const setGlobalState = (...args: any[]) => {
   });
 };
 
+
+// So that we can queue messages if the client is not ready
+export class WsClientWrapper {
+  queue: (Buffer | string)[] = [];
+  constructor(public ws: WebSocket) {
+    this.ws.addEventListener("open", () => {
+      this.flush();
+    });
+  }
+
+  send(message: Buffer | string) {
+    if (this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(message);
+    } else {
+      this.queue.push(message);
+    }
+  }
+
+  flush() {
+    while (this.queue.length > 0) {
+      const message = this.queue.shift();
+      if (message) {
+        this.ws.send(message);
+      }
+    }
+  }
+}
+
 export let wsClient: WsClientWrapper | null = null;
 export function setupWs() {
   // Connect to websocket server
@@ -267,7 +295,7 @@ export function setupWs() {
     console.error("WebSocket error: ", error);
   });
 
-  wsClient = new WsClientWrapper(_socket as any);
+  wsClient = new WsClientWrapper(_socket);
 }
 
 export const shortenText = (text: string, maxLength = 100) => {

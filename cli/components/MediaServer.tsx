@@ -7,7 +7,7 @@ import { WsHeader } from "../../definitions";
 import { saveFrame } from "../utils/indexing";
 import { logger } from "../utils/logger";
 import { ForwardMessage, forwardStream } from "../utils/startForward";
-import { WsClient, WsClientWrapper } from "../../ws_utils";
+
 import { createMessage, parseMessage } from "../../message";
 import {
   addFrame,
@@ -16,6 +16,7 @@ import {
   updateFrame,
 } from "../utils/database";
 import fs from "fs/promises";
+import { WsClient, WsClientWrapper } from "../utils/ws_utils";
 
 export default function MediaServer() {
   const [output, setOutput] = useState<string[]>([]);
@@ -36,10 +37,27 @@ export default function MediaServer() {
     opts.clients.forEach((client) => {
       try {
         if (opts.header.type === "frame") {
-          // Reduce frequency to 10% for clients viewing home
+
           const subscription = client.viewing_streams[opts.header.stream_id] ?? { priority: 0 };
-          if (Math.random() < subscription.priority) {
+          if (client.state[opts.header.stream_id] === undefined) {
+            client.state[opts.header.stream_id] = { lastSentTime: -1 };
+          }
+          const lastSentTime = client.state[opts.header.stream_id].lastSentTime;
+
+          if (subscription.priority == 0) return;
+
+          // Reduced FPS (1 fps)
+          if (subscription.priority == 1) {
+            // Limit to 1 fps per stream per client
+            if (Date.now() - lastSentTime < 1000) return;
+            client.state[opts.header.stream_id].lastSentTime = Date.now();
             client.ws.send(finalMessage);
+          }
+
+          if (subscription.priority >= 2) {
+            // 2 is FULL FPS
+            client.ws.send(finalMessage);
+            client.state[opts.header.stream_id].lastSentTime = Date.now();
           }
         } else {
           client.ws.send(finalMessage);
@@ -167,6 +185,7 @@ export default function MediaServer() {
         ip,
         ws,
         viewing_streams: {},
+        state: {},
       };
 
       // Send config to the new client
@@ -219,7 +238,7 @@ export default function MediaServer() {
 
         if (msg.header.type === "viewing") {
           const streams = msg.header.streams;
-          console.log("Client is viewing home", id);
+          console.log("Client is viewing", streams);
           clients[id].viewing_streams = streams;
         }
 

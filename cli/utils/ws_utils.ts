@@ -8,6 +8,11 @@ export type WsClient = {
             priority: number;
         }
     }
+    state: {
+        [stream_id: string]: {
+            lastSentTime: number;
+        }
+    }
 };
 
 // So that we can queue messages if the client is not ready

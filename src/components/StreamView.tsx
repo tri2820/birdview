@@ -4,7 +4,7 @@ import {
   BsGearFill,
   BsInfoCircleFill,
 } from "solid-icons/bs";
-import { Accessor, onMount } from "solid-js";
+import { Accessor, createEffect, onMount } from "solid-js";
 import SearchBar from "./SearchBar";
 import useVideoPlayer from "./useVideoPlayer";
 import useWsVideo from "./useWsVideo";
@@ -21,14 +21,15 @@ export default function StreamView(props: {
 
   const name = () => config()?.streams?.[props.id()]?.label || props.id();
 
-  onMount(() => {
+  createEffect(() => {
     const b = createMessage({
+      // 2 is FULL FPS
       type: "viewing", streams: {
-        [props.id()]: { priority: 1 }
+        [props.id()]: { priority: 2 }
       }
     });
     wsClient?.send(b);
-  })
+  });
 
   return (
     <div class="h-screen flex flex-col">

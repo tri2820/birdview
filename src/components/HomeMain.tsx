@@ -3,7 +3,7 @@ import {
   FaSolidDisplay,
   FaSolidExpand,
 } from "solid-icons/fa";
-import { Accessor, For, onMount } from "solid-js";
+import { Accessor, createEffect, For, onMount } from "solid-js";
 import SearchBar from "./SearchBar";
 import useWsVideo from "./useWsVideo";
 import useVideoPlayer from "./useVideoPlayer";
@@ -29,12 +29,13 @@ function StreamItem(props: { id: Accessor<string> }) {
 export default function HomeMain() {
   const streams = () => Object.keys(config()?.streams || {});
 
-  onMount(() => {
+  createEffect(() => {
     console.log("HomeMain mounted");
     const streams = config()?.streams || {};
     let subscribedStreams: any = {};
     for (const key of Object.keys(streams)) {
-      subscribedStreams[key] = { priority: 0.1 };
+      // 1 is REDUCED FPS (1 fps)
+      subscribedStreams[key] = { priority: 1 };
     }
     const b = createMessage({ type: "viewing", streams: subscribedStreams });
     wsClient?.send(b);
