@@ -1,7 +1,7 @@
 import { format, set } from "date-fns";
 import { BiSolidCctv } from "solid-icons/bi";
 import { BsSearch } from "solid-icons/bs";
-import { FaSolidCloud, FaSolidSpinner } from "solid-icons/fa";
+import { FaRegularCircleQuestion, FaSolidCloud, FaSolidRobot, FaSolidSpinner } from "solid-icons/fa";
 import { HiSolidSparkles } from "solid-icons/hi";
 import {
   createEffect,
@@ -79,6 +79,13 @@ export function usePlaceholder(props: { no_animation: boolean }) {
 
 export default function SearchBar(props?: { variant?: "md" | "lg" }) {
   const [showPopup, setShowPopup] = createSignal<any>();
+  const [answerState, setAnswerState] = createSignal<{
+    type: "idle" | "loading" | "answer";
+    answer?: string;
+    sources?: any[];
+  }>({
+    type: "idle",
+  });
 
   const variant = () => props?.variant || "md";
   const { placeholder } = usePlaceholder({
@@ -150,12 +157,20 @@ export default function SearchBar(props?: { variant?: "md" | "lg" }) {
     document.addEventListener("click", listener);
   });
 
+  createEffect(() => {
+    const open = isOpen();
+    if (!open) {
+      setState({ type: "idle" });
+      setAnswerState({ type: "idle" });
+    }
+  });
+
   const showNotFound = () => state().type === "idle" || (state().type === "result" && (state().result?.items.length ?? 0) == 0)
 
   return (
     <div>
       <Show when={isOpen()}>
-        <div class="fixed h-[100vh] w-[100vw] top-0 left-0  z-[100]" />
+        <div class="fixed h-[100vh] w-[100vw] top-0 left-0 bg-black/80 z-[100]" />
       </Show>
 
       <Show when={showPopup()}>
@@ -243,100 +258,142 @@ export default function SearchBar(props?: { variant?: "md" | "lg" }) {
                     <div class="flex-none px-4 border-b border-neutral-800 py-2">
                       <button
                         onClick={async () => {
-                          const summary = await fetch(`/api/v1/summarize?q=${encodeURIComponent(query().trim())}`);
-                          const data = await summary.json();
-                          console.log(data);
+                          setAnswerState({ type: "loading" });
+                          try {
+                            const resp = await fetch(`/api/v1/summarize?q=${encodeURIComponent(query().trim())}`);
+                            const data = await resp.json();
+                            setAnswerState({ type: "answer", answer: data.answer, sources: data.sources });
+                          } catch (e) {
+                            setAnswerState({ type: "idle" });
+                          }
                         }}
                         class="btn-secondary"
                       >
-                        <HiSolidSparkles class="w-4 h-4" />
+                        <Show when={answerState().type === 'loading'} fallback={<HiSolidSparkles class="w-4 h-4" />}>
+                          <div class="animate-spin">
+                            <FaSolidSpinner class="w-4 h-4" />
+                          </div>
+                        </Show>
                         <div class="font-bold text-sm">Summarize</div>
                       </button>
                     </div>
 
-                    <div class="overflow-x-hidden overflow-y-auto flex-1">
-                      <For each={state().result?.items}>
-                        {(item) => {
-                          const name = () =>
-                            config()?.streams[item.media_id]?.label ??
-                            item.media_id;
-
-
-                          const imgUrl = () => `/api/v1/image?path=${encodeURIComponent(item.path)}`;
-
-
-                          const desc = () => {
-                            const removePrefixes = [
-                              "This image depicts",
-                              "The image depicts",
-                              "The image shows",
-                              "This image shows",
-                              "The image captures",
-                              "This image captures",
-                            ];
-
-                            let d = item.description.trim();
-                            for (const prefix of removePrefixes) {
-                              if (d.startsWith(prefix)) {
-                                d = d.slice(prefix.length).trim();
-                                // capitalize first letter
-                                if (d.length > 0) {
-                                  d = d.charAt(0).toUpperCase() + d.slice(1);
-                                }
-                              }
-                            }
-
-                            return d;
-                          };
-
-                          return (
-                            <div
-                              class="p-4 hover:bg-neutral-800 cursor-pointer flex items-start space-x-4"
-                              onClick={() => {
-                                // setIsOpen(false);
-                                setShowPopup(item);
-                              }}
-                            >
-                              <div class="flex-1">
-                                <div class="flex items-center space-x-2 py-2">
-                                  <BiSolidCctv class="w-4 h-4 text-neutral-400" />
-                                  <div>{name()}</div>
-                                  <div>•</div>
-                                  <div class="text-sm">
-                                    {format(
-                                      item.at_time,
-                                      "eeee, MMMM do, yyyy 'at' h:mm a"
-                                    )}
-                                  </div>
+                    <Show when={answerState().type === 'idle'} fallback={
+                      <Show when={answerState().type === 'answer'} fallback={
+                        <div class="w-full p-4">
+                          <div class="flex animate-pulse space-x-4">
+                            <div class="flex-1 space-y-6 py-1">
+                              <div class="h-4 rounded bg-neutral-800"></div>
+                              <div class="space-y-3">
+                                <div class="grid grid-cols-3 gap-4">
+                                  <div class="col-span-2 h-4 rounded bg-neutral-800"></div>
+                                  <div class="col-span-1 h-4 rounded bg-neutral-800"></div>
                                 </div>
-
-                                <div class="text-xs line-clamp-2">{desc()}</div>
-
-                                <div class="pt-4 flex items-center">
-                                  <div class="text-xs text-[#a3eeef] border border-[#4c6f73] rounded-full bg-[#28393e] px-2 py-1">
-                                    {/* Rounded to 2 decimal places */}
-                                    relevant: {item.score.toFixed(2)}
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div class="flex-none h-full">
-                                <div class="h-24 w-32 object-cover rounded-lg bg-neutral-800 overflow-hidden">
-                                  <Show when={imgUrl()}>
-                                    {(u) => (
-                                      <img
-                                        src={u()}
-                                        class="w-full h-full object-cover"
-                                      />
-                                    )}
-                                  </Show>
-                                </div>
+                                <div class="h-4 rounded bg-neutral-800"></div>
                               </div>
                             </div>
-                          );
-                        }}
-                      </For>
-                    </div>
+                          </div>
+                        </div>
+                      }>
+                        <div class="p-4 space-y-4">
+                          <div class="flex items-center space-x-2 text-neutral-400">
+                            <FaSolidRobot class="w-6 h-6 " />
+                            <div class="font-bold">AI Summary</div>
+                          </div>
+                          <div>{answerState().answer}</div>
+
+                          <div class="text-sm text-neutral-400 flex items-center space-x-2">
+                            <div>Answer from {answerState().sources?.length} sources</div>
+                            <FaRegularCircleQuestion class="w-4 h-4" />
+                          </div>
+                        </div>
+                      </Show>
+
+                    }>
+                      <div class="overflow-x-hidden overflow-y-auto flex-1">
+                        <For each={state().result?.items}>
+                          {(item) => {
+                            const name = () =>
+                              config()?.streams[item.media_id]?.label ??
+                              item.media_id;
+
+
+                            const imgUrl = () => `/api/v1/image?path=${encodeURIComponent(item.path)}`;
+
+
+                            const desc = () => {
+                              const removePrefixes = [
+                                "This image depicts",
+                                "The image depicts",
+                                "The image shows",
+                                "This image shows",
+                                "The image captures",
+                                "This image captures",
+                              ];
+
+                              let d = item.description.trim();
+                              for (const prefix of removePrefixes) {
+                                if (d.startsWith(prefix)) {
+                                  d = d.slice(prefix.length).trim();
+                                  // capitalize first letter
+                                  if (d.length > 0) {
+                                    d = d.charAt(0).toUpperCase() + d.slice(1);
+                                  }
+                                }
+                              }
+
+                              return d;
+                            };
+
+                            return (
+                              <div
+                                class="p-4 hover:bg-neutral-800 cursor-pointer flex items-start space-x-4"
+                                onClick={() => {
+                                  // setIsOpen(false);
+                                  setShowPopup(item);
+                                }}
+                              >
+                                <div class="flex-1">
+                                  <div class="flex items-center space-x-2 py-2">
+                                    <BiSolidCctv class="w-4 h-4 text-neutral-400" />
+                                    <div>{name()}</div>
+                                    <div>•</div>
+                                    <div class="text-sm">
+                                      {format(
+                                        item.at_time,
+                                        "eeee, MMMM do, yyyy 'at' h:mm a"
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div class="text-xs line-clamp-2">{desc()}</div>
+
+                                  <div class="pt-4 flex items-center">
+                                    <div class="text-xs text-[#a3eeef] border border-[#4c6f73] rounded-full bg-[#28393e] px-2 py-1">
+                                      {/* Rounded to 2 decimal places */}
+                                      relevant: {item.score.toFixed(2)}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div class="flex-none h-full">
+                                  <div class="h-24 w-32 object-cover rounded-lg bg-neutral-800 overflow-hidden">
+                                    <Show when={imgUrl()}>
+                                      {(u) => (
+                                        <img
+                                          src={u()}
+                                          class="w-full h-full object-cover"
+                                        />
+                                      )}
+                                    </Show>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }}
+                        </For>
+                      </div>
+                    </Show>
                   </div>
                 }>
                   <div class="flex items-center h-full justify-center">

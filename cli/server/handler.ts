@@ -35,6 +35,7 @@ export const handleApiRequest = async (
                 return true;
             }
 
+            console.log('handling search for query:', query);
             const result = await searchMediaUnitsByDescription(connection, query);
             if (!result) {
                 res.writeHead(500, { "Content-Type": "application/json" });
@@ -45,6 +46,7 @@ export const handleApiRequest = async (
 
             res.writeHead(200, { "Content-Type": "application/json" });
             res.end(JSON.stringify({ items }));
+            console.log('wrote search response');
             return true;
         }
 
@@ -128,7 +130,7 @@ export const handleApiRequest = async (
             res.end(
                 JSON.stringify({
                     answer: result.answer,
-                    source_items: top10Items, // Return the top 10 items as sources
+                    sources: top10Items, // Return the top 10 items as sources
                 })
             );
             return true;
