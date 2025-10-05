@@ -2,7 +2,7 @@ import { IconTypes } from "solid-icons";
 import * as allBsIcons from "solid-icons/bs";
 import * as allFaIcons from "solid-icons/fa";
 import { batch, Component, createSignal } from "solid-js";
-import { WsHeader } from "../definitions";
+import { WsHeader } from "../types";
 import { createStore } from "solid-js/store";
 
 
@@ -119,7 +119,7 @@ export type TabId =
     type: "multiview";
     stream_ids: string[];
   } | {
-    type: "database"
+    type: "events"
   }
 
 export const [tabId, _setTabId] = createSignal<TabId>({

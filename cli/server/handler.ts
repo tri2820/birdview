@@ -2,11 +2,11 @@ import http from "http";
 import fs from "fs/promises";
 import mime from "mime-types";
 import { URL } from "url";
-import { searchMediaUnitsByDescription } from "../utils/database";
 import { connection } from "../utils/conn";
 import { backendClient } from "../utils/backendClient";
 import { createMessage } from "../../message";
 import { format, set } from "date-fns";
+import { searchMediaUnitsByEmbedding } from "../utils/database";
 
 export const handleApiRequest = async (
     req: http.IncomingMessage,
@@ -36,13 +36,15 @@ export const handleApiRequest = async (
             }
 
             console.log('handling search for query:', query);
-            const result = await searchMediaUnitsByDescription(connection, query);
+
+            const embedding = [1, 2, 3]
+            const result = await searchMediaUnitsByEmbedding(connection, embedding);
             if (!result) {
                 res.writeHead(500, { "Content-Type": "application/json" });
                 res.end(JSON.stringify({ error: "Search failed" }));
                 return true;
             }
-            const items = result.getRowObjectsJson();
+            const items = result
 
             res.writeHead(200, { "Content-Type": "application/json" });
             res.end(JSON.stringify({ items }));
@@ -82,13 +84,14 @@ export const handleApiRequest = async (
             }
 
             // 1. Get search results
-            const searchResult = await searchMediaUnitsByDescription(connection, query);
+            const embedding = [1, 2, 3];
+            const searchResult = await searchMediaUnitsByEmbedding(connection, embedding);
             if (!searchResult) {
                 res.writeHead(500, { "Content-Type": "application/json" });
                 res.end(JSON.stringify({ error: "Search failed" }));
                 return true;
             }
-            const allItems = searchResult.getRowObjectsJson();
+            const allItems = searchResult;
 
             // 2. Get the top 10 rows
             const top10Items = allItems.slice(0, 10);

@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { AV_LOG_WARNING, Log } from "node-av";
 import { WebSocketServer } from "ws";
 
-import { WsHeader } from "../../definitions";
+import type { WsHeader } from "../../types";
 import { createMessage, parseMessage } from "../../message";
 import { backendClient } from "../utils/backendClient";
 import { mediaConfig } from "../utils/config";

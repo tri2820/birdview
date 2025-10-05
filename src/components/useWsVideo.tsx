@@ -1,5 +1,5 @@
 import { Accessor, createEffect, onMount, untrack } from "solid-js";
-import { WsHeader } from "../../definitions";
+import { WsHeader } from "../../types";
 import { globalState, latestWsMessage, setGlobalState } from "../utils";
 import useVideoPlayer from "./useVideoPlayer";
 

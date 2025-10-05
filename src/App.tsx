@@ -10,6 +10,7 @@ import {
   tabId,
   wsClient
 } from "./utils";
+import EventsMain from "./components/EventsMain";
 
 export default function App() {
   onMount(() => {
@@ -36,8 +37,8 @@ export default function App() {
         <TabLayout sidebar={sidebar} main={<div>Moments</div>} />
       </Match>
 
-      <Match when={tabId().type === "database"}>
-        <TabLayout sidebar={sidebar} main={<div>Database</div>} />
+      <Match when={tabId().type === "events"}>
+        <TabLayout sidebar={sidebar} main={<EventsMain />} />
       </Match>
 
       <Match when={tabId().type === "multiview"}>

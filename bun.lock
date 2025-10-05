@@ -6,6 +6,7 @@
       "dependencies": {
         "@duckdb/node-api": "^1.4.0-r.2",
         "@duckdb/node-bindings-linux-arm64": "^1.4.0-r.2",
+        "@lancedb/lancedb": "^0.22.1",
         "@solid-primitives/resize-observer": "^2.1.3",
         "@types/bun": "^1.2.22",
         "@types/mime-types": "^3.0.1",
@@ -206,6 +207,24 @@
     "@jridgewell/sourcemap-codec": ["@jridgewell/sourcemap-codec@1.5.5", "", {}, "sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og=="],
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
+
+    "@lancedb/lancedb": ["@lancedb/lancedb@0.22.1", "", { "dependencies": { "reflect-metadata": "^0.2.2" }, "optionalDependencies": { "@lancedb/lancedb-darwin-arm64": "0.22.1", "@lancedb/lancedb-darwin-x64": "0.22.1", "@lancedb/lancedb-linux-arm64-gnu": "0.22.1", "@lancedb/lancedb-linux-arm64-musl": "0.22.1", "@lancedb/lancedb-linux-x64-gnu": "0.22.1", "@lancedb/lancedb-linux-x64-musl": "0.22.1", "@lancedb/lancedb-win32-arm64-msvc": "0.22.1", "@lancedb/lancedb-win32-x64-msvc": "0.22.1" }, "peerDependencies": { "apache-arrow": ">=15.0.0 <=18.1.0" }, "os": [ "linux", "win32", "darwin", ], "cpu": [ "x64", "arm64", ] }, "sha512-OytLNQLmRmLWRsoHri5Ne2EKNloluphvr1zL+BRQHDnh0KwC3ihC3HlTNUWzcqwlcYGKwFporMOGzqk38r4GuQ=="],
+
+    "@lancedb/lancedb-darwin-arm64": ["@lancedb/lancedb-darwin-arm64@0.22.1", "", { "os": "darwin", "cpu": "arm64" }, "sha512-RuKOA9g+J0nxtpMs32VgzCTTQDOQItjTsvUImlx0re4RrrLGk4u3iiid7y17VOYXtUGhUBgNoC6CO8z9iFeRQg=="],
+
+    "@lancedb/lancedb-darwin-x64": ["@lancedb/lancedb-darwin-x64@0.22.1", "", { "os": "darwin", "cpu": "x64" }, "sha512-wr9oXVhvUZGOph2/J/z9qhH42WXcpNTc2noBgmSWvpyn1zLgGBdkR0AK5dnStM2TzCktCgMSDksDW5HAbMXJWA=="],
+
+    "@lancedb/lancedb-linux-arm64-gnu": ["@lancedb/lancedb-linux-arm64-gnu@0.22.1", "", { "os": "linux", "cpu": "arm64" }, "sha512-cawwQ3n5TBHElLIXvcN/dsIcA7encOuJ/xxepvrKqxzUnher5Ykd753bqVvOa+9PTGdMwfL4KW5Kq7eSBzcUhw=="],
+
+    "@lancedb/lancedb-linux-arm64-musl": ["@lancedb/lancedb-linux-arm64-musl@0.22.1", "", { "os": "linux", "cpu": "arm64" }, "sha512-z8UmNAGcHP2X2Jm0NnuvFFnJeVB1uFLhKXlVVgVDiQuLVyGTT30WtdwXw4ifL7n9QJJPi10+OsFegTksMEzGQA=="],
+
+    "@lancedb/lancedb-linux-x64-gnu": ["@lancedb/lancedb-linux-x64-gnu@0.22.1", "", { "os": "linux", "cpu": "x64" }, "sha512-8yuKeR8y+OfC5GBV+0TRYlS4uueYUKbgSNQ8MyZumaAVJVIxDZtNKryIGm41aplcK+BnlgBleK9P/PrXdPFBpg=="],
+
+    "@lancedb/lancedb-linux-x64-musl": ["@lancedb/lancedb-linux-x64-musl@0.22.1", "", { "os": "linux", "cpu": "x64" }, "sha512-kgxQ0caLDyrMWxRarGFbQZa8877A1CxO6LxvKROFWUarE3gGf67yqHb+y9w2C9vMJndNo2oGJvUWmvkluipocA=="],
+
+    "@lancedb/lancedb-win32-arm64-msvc": ["@lancedb/lancedb-win32-arm64-msvc@0.22.1", "", { "os": "win32", "cpu": "arm64" }, "sha512-be/motJZUJZn2l2VYfInh9CpO9yhp4iW24q9YH8S9JGULLRgzbh3/DmDUzzzB+8RhzYGH+DIltnO3ManFYXEmQ=="],
+
+    "@lancedb/lancedb-win32-x64-msvc": ["@lancedb/lancedb-win32-x64-msvc@0.22.1", "", { "os": "win32", "cpu": "x64" }, "sha512-/l0zZ6uvizFuOJgkoznnUwgsjzcmGwhtYq1Gd1VuSwWszG6/PLIXJyedQkgLdvfBqXZWSBz3vFbgchTtbbA2XA=="],
 
     "@nothing-but/utils": ["@nothing-but/utils@0.12.1", "", {}, "sha512-1qZU1Q5El0IjE7JT/ucvJNzdr2hL3W8Rm27xNf1p6gb3Nw8pGnZmxp6/GEW9h+I1k1cICxXNq25hBwknTQ7yhg=="],
 
@@ -576,6 +595,8 @@
     "react-reconciler": ["react-reconciler@0.32.0", "", { "dependencies": { "scheduler": "^0.26.0" }, "peerDependencies": { "react": "^19.1.0" } }, "sha512-2NPMOzgTlG0ZWdIf3qG+dcbLSoAc/uLfOwckc3ofy5sSK0pLJqnQLpUFxvGcN2rlXSjnVtGeeFLNimCQEj5gOQ=="],
 
     "readable-stream": ["readable-stream@2.3.8", "", { "dependencies": { "core-util-is": "~1.0.0", "inherits": "~2.0.3", "isarray": "~1.0.0", "process-nextick-args": "~2.0.0", "safe-buffer": "~5.1.1", "string_decoder": "~1.1.1", "util-deprecate": "~1.0.1" } }, "sha512-8p0AUk4XODgIewSi0l8Epjs+EVnWiK7NoDIEGU0HhE7+ZyY8D1IMY7odu5lRrFXGg71L15KG8QrPmum45RTtdA=="],
+
+    "reflect-metadata": ["reflect-metadata@0.2.2", "", {}, "sha512-urBwgfrvVP/eAyXx4hluJivBKzuEbSQs9rKWCrCkbSxNv8mxPcUZKeuoF3Uy4mJl3Lwprp6yy5/39VWigZ4K6Q=="],
 
     "requires-port": ["requires-port@1.0.0", "", {}, "sha512-KigOCHcocU3XODJxsu8i/j8T9tzT4adHiecwORRQ0ZZFcp7ahwXuRU1m+yuO90C5ZUyGeGfocHDI14M3L3yDAQ=="],
 

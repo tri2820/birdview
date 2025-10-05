@@ -6,6 +6,7 @@ import {
   FaSolidPlus,
 } from "solid-icons/fa";
 import {
+  FiActivity,
   FiBarChart,
   FiFilm,
   FiGrid,
@@ -94,6 +95,10 @@ export default function SideBar() {
     moments: {
       label: "Moments",
       icon: FiFilm,
+    },
+    events: {
+      label: "Events",
+      icon: FiActivity,
     },
   };
 
