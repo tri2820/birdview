@@ -1,4 +1,4 @@
-import { format } from "date-fns";
+import { format, set } from "date-fns";
 import { BiSolidCctv } from "solid-icons/bi";
 import { BsSearch } from "solid-icons/bs";
 import { FaSolidCloud, FaSolidSpinner } from "solid-icons/fa";
@@ -115,6 +115,7 @@ export default function SearchBar(props?: { variant?: "md" | "lg" }) {
       try {
         const response = await fetch(`/api/v1/search?q=${encodeURIComponent(q)}`);
         if (!response.ok) {
+          setState({ type: "result", query: q, result: { items: [] } }); // Show empty result on error
           throw new Error("Search request failed");
         }
         const data = await response.json();

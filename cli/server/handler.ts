@@ -4,6 +4,9 @@ import mime from "mime-types";
 import { URL } from "url";
 import { searchMediaUnitsByDescription } from "../utils/database";
 import { connection } from "../utils/conn";
+import { backendClient } from "../utils/backendClient";
+import { createMessage } from "../../message";
+import { format, set } from "date-fns";
 
 export const handleApiRequest = async (
     req: http.IncomingMessage,
@@ -33,6 +36,11 @@ export const handleApiRequest = async (
             }
 
             const result = await searchMediaUnitsByDescription(connection, query);
+            if (!result) {
+                res.writeHead(500, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: "Search failed" }));
+                return true;
+            }
             const items = result.getRowObjectsJson();
 
             res.writeHead(200, { "Content-Type": "application/json" });
@@ -73,19 +81,53 @@ export const handleApiRequest = async (
 
             // 1. Get search results
             const searchResult = await searchMediaUnitsByDescription(connection, query);
+            if (!searchResult) {
+                res.writeHead(500, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: "Search failed" }));
+                return true;
+            }
             const allItems = searchResult.getRowObjectsJson();
 
             // 2. Get the top 10 rows
             const top10Items = allItems.slice(0, 10);
 
+            const id = crypto.randomUUID();
+            const passages = top10Items
+                .toSorted((a, b) => (b.at_time as any) - (a.at_time as any))
+                .map((item: any) => {
+                    return `${format(item.at_time, "eeee, MMMM do, yyyy 'at' h:mm a")}: ${item.description}`;
+                })
+            const message = createMessage(
+                {
+                    type: "summarize",
+                    id,
+                    query,
+                    passages,
+                }
+            );
+            backendClient.conn?.send(message);
+
+            const start = Date.now();
+            while (!backendClient.results[id]) {
+                if (Date.now() - start > 20000) { // 20 second timeout
+                    res.writeHead(500, { "Content-Type": "application/json" });
+                    res.end(JSON.stringify({ error: "Summarization timed out" }));
+                    return true;
+                }
+                // Wait for the result to be populated by the WebSocket message handler
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            const result = backendClient.results[id];
+
             // 3. TODO: Implement actual model summarization logic
             // For now, we'll return a placeholder summary.
-            const summaryText = `Placeholder summary for: "${query}". Based on the top ${top10Items.length} most relevant results.`;
+            // const summaryText = `Placeholder summary for: "${query}". Based on the top ${top10Items.length} most relevant results.`;
 
             res.writeHead(200, { "Content-Type": "application/json" });
             res.end(
                 JSON.stringify({
-                    summary: summaryText,
+                    answer: result.answer,
                     source_items: top10Items, // Return the top 10 items as sources
                 })
             );

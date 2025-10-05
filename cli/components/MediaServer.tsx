@@ -1,26 +1,24 @@
 import { Box, Text } from "ink";
 import React, { useEffect, useState } from "react";
 import { AV_LOG_WARNING, Log } from "node-av";
-import { WebSocket, WebSocketServer } from "ws";
+import { WebSocketServer } from "ws";
 
 import { WsHeader } from "../../definitions";
+import { createMessage, parseMessage } from "../../message";
+import { backendClient } from "../utils/backendClient";
+import { mediaConfig } from "../utils/config";
+import { connection } from "../utils/conn";
+import {
+  addMediaUnit
+} from "../utils/database";
 import { saveFrame } from "../utils/indexing";
 import { logger } from "../utils/logger";
 import { ForwardMessage, forwardStream } from "../utils/startForward";
-import { createMessage, parseMessage } from "../../message";
-import {
-  addMediaUnit,
-  searchMediaUnitsByDescription,
-  updateMediaUnit,
-} from "../utils/database";
-import fs from "fs/promises";
-import { WsClient, WsClientWrapper } from "../utils/ws_utils";
-import { connection } from "../utils/conn";
-import { mediaConfig } from "../utils/config";
+import { WsClient } from "../utils/ws_utils";
 
 export default function MediaServer() {
   const [output, setOutput] = useState<string[]>([]);
-  let backendClient: WsClientWrapper | null = null;
+
   let clients: {
     [key: string]: WsClient;
   } = {};
@@ -76,7 +74,7 @@ export default function MediaServer() {
     };
   } = {};
 
-  let backendState: {
+  let clientStates: {
     [stream_id: string]: {
       lastSentTime: number;
     };
@@ -97,8 +95,8 @@ export default function MediaServer() {
       msg.buffer
     );
 
-    if (!backendState[stream_id]) {
-      backendState[stream_id] = {
+    if (!clientStates[stream_id]) {
+      clientStates[stream_id] = {
         lastSentTime: -1,
       };
     }
@@ -106,9 +104,9 @@ export default function MediaServer() {
     // TODO: Selectively send messages based on some criteria
     // e.g. motion, object detected, scene change, etc.
     // Here, send every X seconds as a placeholder
-    if (Date.now() - backendState[stream_id].lastSentTime > 5000) {
-      backendState[stream_id].lastSentTime = Date.now();
-      backendClient?.send(message);
+    if (Date.now() - clientStates[stream_id].lastSentTime > 5000) {
+      clientStates[stream_id].lastSentTime = Date.now();
+      backendClient.conn?.send(message);
       const result = await saveFrame(id, msg.buffer);
 
       // Add to database
@@ -262,71 +260,6 @@ export default function MediaServer() {
     };
   }, []);
 
-  useEffect(() => {
-    const connectToBackend = () => {
-      console.log("Connecting to backend WebSocket for stream monitoring...");
-      const backendWs = new WebSocket("wss://stagingbackend.zapdoslabs.com");
-
-      backendWs.onopen = () => {
-        console.log("Connected to backend.");
-        backendWs.send(
-          JSON.stringify({
-            type: "I_am_a_media_server",
-          })
-        );
-        backendClient = new WsClientWrapper(backendWs);
-      };
-
-      backendWs.onclose = () => {
-        console.log("Backend WebSocket closed. Retrying in 5 seconds...");
-        setTimeout(connectToBackend, 5000);
-      };
-
-      backendWs.onmessage = async (event) => {
-        const data = parseMessage(event.data as any).header as any;
-
-        if (data.type === 'image_description_result') {
-          try {
-            await updateMediaUnit(connection, {
-              id: data.id,
-              description: data.description,
-            });
-          } catch (e) {
-            console.error(
-              "Failed to update frame with backend result:",
-              e,
-              event,
-              event.data
-            );
-            console.error('Retrying once...');
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            try {
-              await updateMediaUnit(connection, {
-                id: data.id,
-                description: data.description,
-              });
-              console.log("Retry succeeded.");
-            } catch (e) {
-              console.error("Retry failed:", e);
-            }
-          }
-        }
-
-      };
-
-      backendWs.onerror = (err) => {
-        log(
-          "Backend WebSocket error:",
-          err.message,
-          "Retrying in 5 seconds..."
-        );
-        // The 'onclose' event will usually fire after an 'onerror',
-        // so we don't strictly need to retry here as well to avoid double retries.
-      };
-    };
-
-    connectToBackend();
-  }, []);
 
   return (
     <Box

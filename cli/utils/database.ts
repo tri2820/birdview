@@ -181,15 +181,20 @@ export async function closeConnection(connection: DuckDBConnection) {
  * Searches the media_units table by description.
  */
 export async function searchMediaUnitsByDescription(connection: DuckDBConnection, query: string) {
-    const querySql = `
+    try {
+        const querySql = `
         SELECT *, fts_main_media_units.match_bm25(id, $query) AS score
         FROM media_units
         WHERE score IS NOT NULL
         ORDER BY score DESC
         LIMIT 50;
     `;
-    const results = await connection.runAndReadAll(querySql, { query: query });
-    return results;
+        const results = await connection.runAndReadAll(querySql, { query: query });
+        return results;
+    } catch (error) {
+        console.error("Error searching media units by description:", error);
+        return null
+    }
 }
 
 /**
@@ -197,7 +202,8 @@ export async function searchMediaUnitsByDescription(connection: DuckDBConnection
  * Returns results with a 'distance' (0-2, lower is better) and a 'score' (0-1, higher is better).
  */
 export async function searchMediaUnitsByEmbedding(connection: DuckDBConnection, queryEmbedding: number[]) {
-    const querySql = `
+    try {
+        const querySql = `
         WITH distances AS (
             SELECT 
                 *, 
@@ -212,6 +218,10 @@ export async function searchMediaUnitsByEmbedding(connection: DuckDBConnection, 
         ORDER BY distance ASC
         LIMIT 50;
     `;
-    const results = await connection.runAndReadAll(querySql, { embedding: JSON.stringify(queryEmbedding) });
-    return results;
+        const results = await connection.runAndReadAll(querySql, { embedding: JSON.stringify(queryEmbedding) });
+        return results;
+    } catch (error) {
+        console.error("Error searching media units by embedding:", error);
+        return null
+    }
 }
