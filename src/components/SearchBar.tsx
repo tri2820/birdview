@@ -165,6 +165,11 @@ export default function SearchBar(props?: { variant?: "md" | "lg" }) {
     }
   });
 
+
+  createEffect(() => {
+    const q = query();
+    setAnswerState({ type: "idle" });
+  })
   const showNotFound = () => state().type === "idle" || (state().type === "result" && (state().result?.items.length ?? 0) == 0)
 
   return (
