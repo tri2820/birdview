@@ -26,3 +26,13 @@ export type WsHeader =
         type: 'get_image_result';
         path: string;
     }
+
+
+export type MediaUnit = {
+    id: string;
+    description: string | null;
+    at_time: Date;
+    embedding: number[] | null;
+    media_id: string;
+    path: string;
+}

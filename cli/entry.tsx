@@ -7,7 +7,7 @@ import MediaServer from "./components/MediaServer";
 const App = () => {
   return (
     <Box flexDirection="column">
-      <MediaServer />
+      {/* <MediaServer /> */}
       <FrontendServer />
     </Box>
   );

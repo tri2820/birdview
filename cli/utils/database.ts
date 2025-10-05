@@ -2,15 +2,8 @@ import * as lancedb from "@lancedb/lancedb";
 import * as arrow from "apache-arrow";
 import fs from 'fs/promises';
 import { DATABASE_EMBEDDING_DIMENSION } from '../definitions';
+import { MediaUnit } from "../../types";
 
-type MediaUnit = {
-    id: string;
-    description: string | null;
-    at_time: Date;
-    embedding: number[] | null;
-    media_id: string;
-    path: string;
-}
 
 /**
  * Initializes the database and creates the table schema.
@@ -123,6 +116,47 @@ export async function searchMediaUnitsByEmbedding(connection: lancedb.Connection
         return resultArray;
     } catch (error) {
         console.error("Error searching media units by embedding:", error);
+        return null;
+    }
+}
+
+/**
+ * Retrieves media units with pagination.
+ */
+export async function getMediaUnitsPaginated(
+    connection: lancedb.Connection,
+    page: number = 1,
+    limit: number = 10
+): Promise<{ items: MediaUnit[], total: number } | null> {
+    try {
+        const table = await connection.openTable('media_units');
+
+        // Get total count
+        const total = await table.countRows();
+
+        // Calculate offset based on page and limit
+        const offset = (page - 1) * limit;
+
+        // Query with limit and skip for pagination
+        const allResults = await table
+            .toArrow()
+            .then(arrowTable => {
+                // Convert to JS array and sort by at_time in descending order 
+                const rows = arrowTable.toArray().sort((a, b) =>
+                    new Date(b.at_time).getTime() - new Date(a.at_time).getTime()
+                );
+
+                // Apply pagination by slicing the sorted array
+                const paginatedRows = rows.slice(offset, offset + limit);
+                return paginatedRows;
+            });
+
+        return {
+            items: allResults,
+            total
+        };
+    } catch (error) {
+        console.error("Error retrieving paginated media units:", error);
         return null;
     }
 }
