@@ -9,9 +9,10 @@ import { fileURLToPath } from "url";
 import { getArgv, mediaConfig } from "../utils/config";
 import { logger } from "../utils/logger";
 import { handleApiRequest } from "../server/handler";
+import { Box, Text } from "ink";
+import React from "react";
 
-
-export default function useAppServer() {
+export default function AppServer() {
   const argv = getArgv();
   const [status, setStatus] = useState("Initializing...");
   const [output, setOutput] = useState<string[]>([]);
@@ -32,24 +33,19 @@ export default function useAppServer() {
         // DEVELOPMENT: Spawn Vite as separate process and run a separate API server
         setStatus("Starting Vite Dev Server and API Server...");
 
-        const apiPort = mediaConfig.port + 1;
-        const apiServerUrl = `http://localhost:${apiPort}`;
-
         // Create a simple API server
         apiServer = http.createServer(handleApiRequest);
 
-        apiServer.listen(apiPort, () => {
-          log(`✓ API Server listening on ${apiServerUrl}`);
+        apiServer.listen(mediaConfig.rest_server.port, () => {
+          log(`✓ API Server listening on http://localhost:${mediaConfig.rest_server.port}`);
         });
-
 
         viteProcess = spawn("npx", ["vite"], {
           stdio: ["inherit", "pipe", "pipe"],
           env: {
             ...process.env,
-            BV_CONFIG_PATH: mediaConfig.__path,
             FORCE_COLOR: "1",
-            VITE_API_PROXY_TARGET: apiServerUrl,
+            VITE_REST_SERVER_PORT: mediaConfig.rest_server.port.toString(),
             VITE_PORT: mediaConfig.port.toString(),
             VITE_MEDIA_SERVER_PORT: mediaConfig.media_server.port.toString(),
           },
@@ -164,5 +160,15 @@ export default function useAppServer() {
     };
   }, []);
 
-  return { status, output: output.join("\n") };
+  return <Box
+    borderStyle="single"
+    borderColor="gray"
+    flexDirection="column"
+    paddingX={1}
+  >
+    <Text color="cyan">
+      <Text bold>App:</Text> {status}
+    </Text>
+    <Text color="gray">{output}</Text>
+  </Box>
 }

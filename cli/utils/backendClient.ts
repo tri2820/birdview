@@ -1,9 +1,8 @@
-import { parseMessage } from "../../message";
-import { connection } from "./conn";
-import { updateMediaUnit } from "./database";
+import { createMessage, parseMessage } from "../../message";
+import { mediaConfig } from "./config";
 import { WsClientWrapper } from "./ws_utils";
 
-import { WebSocket, WebSocketServer } from "ws";
+import { WebSocket } from "ws";
 
 export const backendClient: {
     conn?: WsClientWrapper,
@@ -17,15 +16,20 @@ export const backendClient: {
 
 const connectToBackend = () => {
     console.log("Connecting to backend WebSocket for stream monitoring...");
-    const backendWs = new WebSocket("wss://stagingbackend.zapdoslabs.com");
+    const backendWs = new WebSocket("wss://backend.zapdoslabs.com");
 
     backendWs.onopen = () => {
         console.log("Connected to backend.");
-        backendWs.send(
-            JSON.stringify({
-                type: "I_am_a_media_server",
-            })
-        );
+        const header = mediaConfig.auth_token ? {
+            type: "i_am_tenant",
+            auth_token: mediaConfig.auth_token,
+        } : {
+            type: "i_am_tenant",
+            create_new: true,
+        }
+
+        const msg = createMessage(header);
+        backendWs.send(msg);
         backendClient.conn = new WsClientWrapper(backendWs);
     };
 
@@ -34,42 +38,9 @@ const connectToBackend = () => {
         setTimeout(connectToBackend, 5000);
     };
 
+
     backendWs.onmessage = async (event) => {
-        const data = parseMessage(event.data as any).header as any;
-
-        if (data.type === 'image_description_result') {
-            try {
-                await updateMediaUnit(connection, {
-                    id: data.id,
-                    description: data.description,
-                });
-            } catch (e) {
-                console.error(
-                    "Failed to update frame with backend result:",
-                    e,
-                    event,
-                    event.data
-                );
-                console.error('Retrying once...');
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                try {
-                    await updateMediaUnit(connection, {
-                        id: data.id,
-                        description: data.description,
-                    });
-                    console.log("Retry succeeded.");
-                } catch (e) {
-                    console.error("Retry failed:", e);
-                }
-            }
-        }
-
-        if (data.type === 'summarize_result') {
-            // Handle the summarize result
-            console.log("Received summarize result:", data);
-            const id = data.id;
-            backendClient.results[id] = data;
-        }
+        // const data = parseMessage(event.data as any).header as any;
     };
 
     backendWs.onerror = (err) => {

@@ -1,7 +1,6 @@
 import http from "http";
 import { URL } from "url";
-import { connection } from "../../utils/conn";
-import { searchMediaUnitsByEmbedding } from "../../utils/database";
+
 
 export const handleSearchRequest = async (
     req: http.IncomingMessage,
@@ -26,17 +25,18 @@ export const handleSearchRequest = async (
 
     console.log('handling search for query:', query);
 
-    const embedding = [1, 2, 3];
-    const result = await searchMediaUnitsByEmbedding(connection, embedding);
-    if (!result) {
-        res.writeHead(500, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "Search failed" }));
-        return true;
-    }
-    const items = result;
+    throw new Error('Search not implemented yet');
+    // const embedding = [1, 2, 3];
+    // const result = await searchMediaUnitsByEmbedding(embedding);
+    // if (!result) {
+    //     res.writeHead(500, { "Content-Type": "application/json" });
+    //     res.end(JSON.stringify({ error: "Search failed" }));
+    //     return true;
+    // }
+    // const items = result;
 
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ items }));
-    console.log('wrote search response');
-    return true;
+    // res.writeHead(200, { "Content-Type": "application/json" });
+    // res.end(JSON.stringify({ items }));
+    // console.log('wrote search response');
+    // return true;
 };

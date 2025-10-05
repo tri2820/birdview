@@ -17,7 +17,7 @@ export default defineConfig({
       },
       // This is the new proxy for your REST endpoints in development
       "/api": {
-        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:3001',
+        target: `http://localhost:${process.env.VITE_REST_SERVER_PORT || 5820}`,
         changeOrigin: true,
       },
     },

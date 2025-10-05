@@ -1,5 +1,6 @@
 {
   "port": 3010,
+  "rest_server_port": 4000,
   "media_server": {
     "port": 8050
   },

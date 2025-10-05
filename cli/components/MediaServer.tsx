@@ -1,21 +1,16 @@
 import { Box, Text } from "ink";
-import React, { useEffect, useState } from "react";
 import { AV_LOG_WARNING, Log } from "node-av";
+import { useEffect, useState } from "react";
 import { WebSocketServer } from "ws";
 
-import type { WsHeader } from "../../types";
 import { createMessage, parseMessage } from "../../message";
+import type { WsHeader } from "../../types";
 import { backendClient } from "../utils/backendClient";
 import { mediaConfig } from "../utils/config";
-import { connection } from "../utils/conn";
-import {
-  addMediaUnit
-} from "../utils/database";
-import { saveFrame } from "../utils/indexing";
 import { logger } from "../utils/logger";
 import { ForwardMessage, forwardStream } from "../utils/startForward";
 import { WsClient } from "../utils/ws_utils";
-
+import React from "react";
 export default function MediaServer() {
   const [output, setOutput] = useState<string[]>([]);
 
@@ -33,32 +28,32 @@ export default function MediaServer() {
     let finalMessage: Buffer | string = createMessage(opts.header, opts.buffer);
     opts.clients.forEach((client) => {
       try {
-        if (opts.header.type === "frame") {
+        // if (opts.header.type === "frame") {
 
-          const subscription = client.viewing_streams[opts.header.stream_id] ?? { priority: 0 };
-          if (client.state[opts.header.stream_id] === undefined) {
-            client.state[opts.header.stream_id] = { lastSentTime: -1 };
-          }
-          const lastSentTime = client.state[opts.header.stream_id].lastSentTime;
+        //   const subscription = client.viewing_streams[opts.header.stream_id] ?? { priority: 0 };
+        //   if (client.state[opts.header.stream_id] === undefined) {
+        //     client.state[opts.header.stream_id] = { lastSentTime: -1 };
+        //   }
+        //   const lastSentTime = client.state[opts.header.stream_id].lastSentTime;
 
-          if (subscription.priority == 0) return;
+        //   if (subscription.priority == 0) return;
 
-          // Reduced FPS (1 fps)
-          if (subscription.priority == 1) {
-            // Limit to 1 fps per stream per client
-            if (Date.now() - lastSentTime < 1000) return;
-            client.state[opts.header.stream_id].lastSentTime = Date.now();
-            client.ws.send(finalMessage);
-          }
+        //   // Reduced FPS (1 fps)
+        //   if (subscription.priority == 1) {
+        //     // Limit to 1 fps per stream per client
+        //     if (Date.now() - lastSentTime < 1000) return;
+        //     client.state[opts.header.stream_id].lastSentTime = Date.now();
+        //     client.ws.send(finalMessage);
+        //   }
 
-          if (subscription.priority >= 2) {
-            // 2 is FULL FPS
-            client.ws.send(finalMessage);
-            client.state[opts.header.stream_id].lastSentTime = Date.now();
-          }
-        } else {
-          client.ws.send(finalMessage);
-        }
+        //   if (subscription.priority >= 2) {
+        //     // 2 is FULL FPS
+        //     client.ws.send(finalMessage);
+        //     client.state[opts.header.stream_id].lastSentTime = Date.now();
+        //   }
+        // } else {
+        //   client.ws.send(finalMessage);
+        // }
       } catch (e) {
         log("Error broadcasting to client: " + e);
         clients = Object.fromEntries(
@@ -86,14 +81,7 @@ export default function MediaServer() {
     msg: ForwardMessage
   ) {
     if (msg.type !== "frame") return;
-    const message = createMessage(
-      {
-        type: "index",
-        stream_id,
-        id,
-      },
-      msg.buffer
-    );
+
 
     if (!clientStates[stream_id]) {
       clientStates[stream_id] = {
@@ -106,16 +94,20 @@ export default function MediaServer() {
     // Here, send every X seconds as a placeholder
     if (Date.now() - clientStates[stream_id].lastSentTime > 5000) {
       clientStates[stream_id].lastSentTime = Date.now();
-      backendClient.conn?.send(message);
-      const result = await saveFrame(id, msg.buffer);
+      const message = createMessage(
+        {
+          type: "index",
+          id,
+          row: {
+            at_time: new Date().toISOString(),
+            media_id: stream_id,
+          }
+        },
+        msg.buffer
+      );
 
-      // Add to database
-      await addMediaUnit(connection, {
-        id,
-        at_time: new Date().toISOString(),
-        path: result.filepath,
-        media_id: stream_id,
-      });
+
+      backendClient.conn?.send(message);
     }
   }
 
@@ -130,11 +122,11 @@ export default function MediaServer() {
         forwardToBackend(stream_id, id, msg);
 
         if (msg.type === "frame") {
-          broadcast({
-            header: { type: "frame", stream_id, id },
-            buffer: msg.buffer,
-            clients: Object.values(clients),
-          });
+          // broadcast({
+          //   header: { type: "frame", stream_id, id },
+          //   buffer: msg.buffer,
+          //   clients: Object.values(clients),
+          // });
         }
 
         // Forward codecpar messages to clients

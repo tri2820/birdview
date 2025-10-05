@@ -10,9 +10,13 @@ export type ConfigViewItem = {
 
 export type AppConfig = {
   port: number;
+  rest_server: {
+    port: number;
+  };
   media_server: {
     port: number;
   };
+  auth_token: string;
   streams: {
     [id: string]: {
       label?: string;
@@ -20,17 +24,10 @@ export type AppConfig = {
     };
   };
   views?: ConfigViewItem[];
-
-  __path?: string;
 };
 
-type GetConfigOpts = {
-  from_flags?: boolean;
-  from_env?: boolean;
-};
 
 export function getArgv() {
-
   const argv = yargs(hideBin(process.argv))
     .version(process.env.APP_VERSION as string) // Use the injected version
     .option("config", {
@@ -47,35 +44,6 @@ export function getArgv() {
   return argv;
 }
 
-function getConfigPath(opts?: GetConfigOpts) {
-  const from_env = opts?.from_env ?? true;
-  const from_flags = opts?.from_flags ?? true;
-
-  const argv = getArgv();
-
-  let configPath: string | undefined = undefined;
-  if (from_flags) {
-    configPath = argv.config;
-  }
-
-  if (from_env) {
-    configPath = configPath || process.env.BV_CONFIG_PATH;
-  }
-
-  if (configPath) {
-    try {
-      configPath = path.resolve(configPath);
-      // Check if the file exists and is readable
-      fs.accessSync(configPath, fs.constants.R_OK);
-    } catch (err) {
-      console.error(`Config file at ${configPath} is not readable:`, err);
-      process.exit(1);
-    }
-  }
-
-  return configPath;
-}
-
 function readConfigFile(configPath: string) {
   try {
     const configFile = fs.readFileSync(configPath, "utf-8");
@@ -86,22 +54,35 @@ function readConfigFile(configPath: string) {
   }
 }
 
-export function getConfig(opts?: GetConfigOpts) {
-  const configPath = getConfigPath(opts);
+export function writeConfigFile(configPath: string, config: AppConfig) {
+  try {
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
+  } catch (error) {
+    console.error(`Error writing config file at ${configPath}:`, error);
+  }
+}
+
+export async function getConfig() {
+  const argv = getArgv();
+  const configPath = argv.config;
   const config: AppConfig = configPath ? readConfigFile(configPath) : {};
 
-  if (!config.port) config.port = parseInt(process.env.BV_PORT || "3000");
+  if (!config.port) config.port = 6820;
   // @ts-ignore
   if (!config.media_server) config.media_server = {};
-  if (!config.media_server.port)
-    config.media_server.port = parseInt(
-      process.env.BV_MEDIA_SERVER_PORT || "8080"
-    );
-  if (!config.streams) config.streams = {};
-  config.__path = configPath;
+  if (!config.media_server.port) config.media_server.port = 5820;
+  // @ts-ignore
+  if (!config.rest_server) config.rest_server = {};
+  if (!config.rest_server.port) config.rest_server.port = 5820;
 
+  if (!config.auth_token) {
+    console.log('Config file does not contain "auth_token", server will create a new *guest* tenant for you.');
+    // tenant creation will be handled by first connection to backend
+  }
+
+  if (!config.streams) config.streams = {};
   return config;
 }
 
-export const mediaConfig = getConfig();
+export const mediaConfig = await getConfig();
 

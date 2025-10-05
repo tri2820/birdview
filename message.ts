@@ -57,17 +57,32 @@ export function jsonBigIntReplacer(key: string, value: any) {
     return value;
 }
 
-
 export function createMessage(header: Record<string, any>, buffer?: ArrayBufferLike) {
-    if (buffer) {
-        const headerString = JSON.stringify(header, jsonBigIntReplacer);
-        const headerBuffer = Buffer.from(headerString, "utf-8");
-        const headerLength = headerBuffer.length;
-        const lengthBuffer = Buffer.alloc(4);
-        lengthBuffer.writeUInt32BE(headerLength, 0);
-        const imageBuffer = Buffer.from(buffer as ArrayBuffer);
-        return Buffer.concat([lengthBuffer, headerBuffer, imageBuffer]);
+    if (!buffer) {
+        // This part remains the same if no buffer is provided
+        return JSON.stringify(header, jsonBigIntReplacer);
     }
 
-    return JSON.stringify(header, jsonBigIntReplacer);
+    const headerString = JSON.stringify(header, jsonBigIntReplacer);
+    const headerBuffer = Buffer.from(headerString, "utf-8");
+    const headerLength = headerBuffer.length;
+    const imageBuffer = Buffer.from(buffer as ArrayBuffer);
+    const imageLength = imageBuffer.length;
+
+    // 1. Calculate total size upfront
+    const totalLength = 4 + headerLength + imageLength;
+
+    // 2. Allocate a single buffer of the exact size needed
+    const finalBuffer = Buffer.allocUnsafe(totalLength); // Use allocUnsafe for performance when you'll overwrite the whole buffer
+
+    // 3. Write data sequentially into the buffer at specific offsets
+    let offset = 0;
+    finalBuffer.writeUInt32BE(headerLength, offset);
+    offset += 4;
+    headerBuffer.copy(finalBuffer, offset);
+    offset += headerLength;
+    imageBuffer.copy(finalBuffer, offset);
+
+    return finalBuffer;
+
 }
