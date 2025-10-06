@@ -5,6 +5,7 @@ import { handleSearchRequest } from "./handlers/search";
 import { handleImageRequest } from "./handlers/image";
 import { handleSummarizeRequest } from "./handlers/summarize";
 import { handleMediaUnitRequest } from "./handlers/media-unit";
+import { appConfig, maskedConfig } from "../utils/config";
 
 export const handleApiRequest = async (
     req: http.IncomingMessage,
@@ -23,6 +24,7 @@ export const handleApiRequest = async (
             return handleStatusRequest(req, res);
         }
 
+        // Proxy these specific API routes to cloud
         if (pathname === "/api/v1/search") {
             return await handleSearchRequest(req, res);
         }

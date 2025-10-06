@@ -6,11 +6,14 @@ import SideBar from "./components/SideBar";
 import StreamView from "./components/StreamView";
 import TabLayout from "./components/TabLayout";
 import {
+  latestWsMessage,
+  setGlobalState,
   setupWs,
   tabId,
   wsClient
 } from "./utils";
 import EventsMain from "./components/EventsMain";
+import { WsHeader } from "../types";
 
 export default function App() {
   onMount(() => {

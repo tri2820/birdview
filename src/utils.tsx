@@ -281,11 +281,16 @@ export function setupWs() {
   });
 
   _socket.addEventListener("message", (event) => {
+    console.log("Received message from WebSocket server", event.data);
     const message = parseWsMessage(event.data);
     setLatestWsMessage(message);
 
     if (message.header.type === "config") {
       setConfig(message.header.data);
+    }
+
+    if (message.header.type === "codecpar") {
+      setGlobalState("streams", message.header.stream_id, "codecpar", message.header.data);
     }
   });
 
@@ -306,8 +311,4 @@ export const shortenText = (text: string, maxLength = 100) => {
 };
 
 
-export const [recentSearches, setRecentSearches] = createSignal<string[]>([
-  "loading dock",
-  "back door access",
-  "parking spot 42",
-]);
+export const [recentSearches, setRecentSearches] = createSignal<string[]>([]);

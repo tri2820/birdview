@@ -13,22 +13,70 @@ const streamItemSchema = z.object({
 // 2. Define the main application schema using Zod
 const appSchema = z.object({
   port: z.number().default(6700),
-  rest_server: z.object({
-    port: z.number(),
-  }).default({
-    port: 6710,
-  }),
-  media_server: z.object({
-    port: z.number(),
-  }).default({
-    port: 6720,
-  }),
+  rest_server: z
+    .object({
+      port: z.number(),
+    })
+    .default({
+      port: 6710,
+    }),
+  media_server: z
+    .object({
+      port: z.number(),
+    })
+    .default({
+      port: 6720,
+    }),
   auth_token: z.string().nullable().default(null),
-  streams: z.record(z.string(), streamItemSchema).default({}),
-  views: z.array(z.object({
-    label: z.string(),
-    streams: z.array(z.string()),
-  })).default([]),
+  streams: z
+    .record(z.string(), streamItemSchema)
+    .default({
+      "camera-1": {
+        label: "University Lab Pendulum",
+        uri: "http://pendelcam.kip.uni-heidelberg.de/mjpg/video.mjpg",
+      },
+      "camera-2": {
+        label: "Panama Port",
+        uri: "http://200.46.196.243/axis-cgi/media.cgi?camera=1&videoframeskipmode=empty&videozprofile=classic&resolution=1280x720&audiodeviceid=0&audioinputid=0&audiocodec=aac&audiosamplerate=16000&audiobitrate=32000&timestamp=0&videocodec=h264&container=mp4",
+      },
+      "camera-3": {
+        label: "Port",
+        uri: "http://77.110.245.165/axis-cgi/mjpg/video.cgi",
+      },
+      "camera-4": {
+        label: "Parking Lot",
+        uri: "http://83.48.75.113:8320/axis-cgi/mjpg/video.cgi",
+      },
+      "camera-5": {
+        label: "Riverbank",
+        uri: "http://109.247.15.178:6001/mjpg/video.mjpg",
+      },
+      "camera-6": {
+        label: "Dock",
+        uri: "http://eyc.synology.me:10001/mjpg/video.mjpg",
+      },
+      "camera-7": {
+        label: "Airport",
+        uri: "http://mmb.aa1.netvolante.jp:1025/mjpg/video.mjpg?resolution=640x360",
+      },
+    }),
+  views: z
+    .array(
+      z.object({
+        label: z.string(),
+        streams: z.array(z.string()),
+      })
+    )
+    .default([
+      {
+        label: "Inside",
+        streams: ["camera-1", "camera-2"],
+      },
+      {
+        label: "Outside",
+        streams: ["camera-3", "camera-4", "camera-5", "camera-6", "camera-7"],
+      },
+    ]),
 });
 
 // 3. Infer the TypeScript type
@@ -72,4 +120,12 @@ export const argv_options = yargs(hideBin(process.argv))
 export function getArgv() {
   const argv = argv_options.parseSync();
   return argv;
+}
+
+export function maskedConfig() {
+  const masked = appConfig.store;
+  if (masked.auth_token) {
+    masked.auth_token = '***';
+  }
+  return masked;
 }

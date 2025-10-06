@@ -6,11 +6,11 @@ import { WebSocketServer } from "ws";
 import { createMessage, parseMessage } from "../../message";
 import type { WsHeader } from "../../types";
 import { backendClient } from "../utils/backendClient";
+import { appConfig, maskedConfig } from "../utils/config";
 import { logger } from "../utils/logger";
 import { ForwardMessage, forwardStream } from "../utils/startForward";
 import { WsClient } from "../utils/ws_utils";
 import React from "react";
-import { appConfig } from "../utils/config";
 
 export default function MediaServer() {
   const [output, setOutput] = useState<string[]>([]);
@@ -29,32 +29,31 @@ export default function MediaServer() {
     let finalMessage: Buffer | string = createMessage(opts.header, opts.buffer);
     opts.clients.forEach((client) => {
       try {
-        // if (opts.header.type === "frame") {
+        if (opts.header.type === "frame") {
+          const subscription = client.viewing_streams[opts.header.stream_id] ?? { priority: 0 };
+          if (client.state[opts.header.stream_id] === undefined) {
+            client.state[opts.header.stream_id] = { lastSentTime: -1 };
+          }
+          const lastSentTime = client.state[opts.header.stream_id].lastSentTime;
 
-        //   const subscription = client.viewing_streams[opts.header.stream_id] ?? { priority: 0 };
-        //   if (client.state[opts.header.stream_id] === undefined) {
-        //     client.state[opts.header.stream_id] = { lastSentTime: -1 };
-        //   }
-        //   const lastSentTime = client.state[opts.header.stream_id].lastSentTime;
+          if (subscription.priority == 0) return;
 
-        //   if (subscription.priority == 0) return;
+          // Reduced FPS (1 fps)
+          if (subscription.priority == 1) {
+            // Limit to 1 fps per stream per client
+            if (Date.now() - lastSentTime < 1000) return;
+            client.state[opts.header.stream_id].lastSentTime = Date.now();
+            client.ws.send(finalMessage);
+          }
 
-        //   // Reduced FPS (1 fps)
-        //   if (subscription.priority == 1) {
-        //     // Limit to 1 fps per stream per client
-        //     if (Date.now() - lastSentTime < 1000) return;
-        //     client.state[opts.header.stream_id].lastSentTime = Date.now();
-        //     client.ws.send(finalMessage);
-        //   }
-
-        //   if (subscription.priority >= 2) {
-        //     // 2 is FULL FPS
-        //     client.ws.send(finalMessage);
-        //     client.state[opts.header.stream_id].lastSentTime = Date.now();
-        //   }
-        // } else {
-        //   client.ws.send(finalMessage);
-        // }
+          if (subscription.priority >= 2) {
+            // 2 is FULL FPS
+            client.ws.send(finalMessage);
+            client.state[opts.header.stream_id].lastSentTime = Date.now();
+          }
+        } else {
+          client.ws.send(finalMessage);
+        }
       } catch (e) {
         log("Error broadcasting to client: " + e);
         clients = Object.fromEntries(
@@ -123,11 +122,11 @@ export default function MediaServer() {
         forwardToBackend(stream_id, id, msg);
 
         if (msg.type === "frame") {
-          // broadcast({
-          //   header: { type: "frame", stream_id, id },
-          //   buffer: msg.buffer,
-          //   clients: Object.values(clients),
-          // });
+          broadcast({
+            header: { type: "frame", stream_id, id },
+            buffer: msg.buffer,
+            clients: Object.values(clients),
+          });
         }
 
         // Forward codecpar messages to clients
@@ -151,10 +150,6 @@ export default function MediaServer() {
   }
 
   async function startMediaServer() {
-    // Placeholder for WebSocket server logic
-    // This function would set up a WebSocket server to stream media frames to connected clients
-    console.log("Starting Media WebSocket Server...", appConfig.get('media_server.port'));
-
     const wss = new WebSocketServer({ port: appConfig.get('media_server.port') });
 
     // This event listener is fired when a new client connects to the server
@@ -176,12 +171,11 @@ export default function MediaServer() {
         state: {},
       };
 
-
       // Send config to the new client
       broadcast({
         header: {
           type: "config",
-          data: appConfig.get('mediaConfig'),
+          data: maskedConfig(),
         },
         clients: [clients[id]],
       });
@@ -206,16 +200,10 @@ export default function MediaServer() {
       // This event listener is fired when the server receives a message from a client
       ws.on("message", async (message) => {
         const msg = parseMessage(message as any);
-
-
-
         if (msg.header.type === "viewing") {
           const streams = msg.header.streams;
           clients[id].viewing_streams = streams;
         }
-
-
-
       });
 
       // This event listener is fired when a client disconnects
@@ -264,8 +252,7 @@ export default function MediaServer() {
       paddingX={1}
     >
       <Text color="green">
-        <Text bold>Media Source:</Text> Streaming at :
-        {appConfig.get('media_server.port')}
+        <Text bold>Media Server:</Text> {appConfig.get('media_server.port')}
       </Text>
       <Text color="gray">{output.join("\n")}</Text>
     </Box>

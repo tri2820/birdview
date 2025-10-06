@@ -3,7 +3,7 @@ import {
   FaSolidDisplay,
   FaSolidExpand,
 } from "solid-icons/fa";
-import { Accessor, createEffect, For, onMount } from "solid-js";
+import { Accessor, createEffect, For, onMount, Show } from "solid-js";
 import SearchBar from "./SearchBar";
 import useWsVideo from "./useWsVideo";
 import useVideoPlayer from "./useVideoPlayer";
@@ -54,24 +54,26 @@ export default function HomeMain() {
         <SearchBar variant="lg" />
       </div>
 
-      <div class="text-left w-[40vw] mt-12 space-y-2 relative z-30">
-        <div class="flex items-center space-x-2 text-neutral-300">
-          <FaSolidClockRotateLeft class="w-4 h-4" />
-          <div class="font-bold">Recent Searches</div>
-        </div>
+      <Show when={recentSearches().length > 0}>
+        <div class="text-left w-[40vw] mt-12 space-y-2 relative z-30">
+          <div class="flex items-center space-x-2 text-neutral-300">
+            <FaSolidClockRotateLeft class="w-4 h-4" />
+            <div class="font-bold">Recent Searches</div>
+          </div>
 
-        <div>
-          <For each={recentSearches()}>
-            {(item) => {
-              return (
-                <div class="text-neutral-300 hover:text-white cursor-pointer px-6 py-4 border-b border-neutral-800">
-                  {item}
-                </div>
-              );
-            }}
-          </For>
+          <div>
+            <For each={recentSearches()}>
+              {(item) => {
+                return (
+                  <div class="text-neutral-300 hover:text-white cursor-pointer px-6 py-4 border-b border-neutral-800">
+                    {item}
+                  </div>
+                );
+              }}
+            </For>
+          </div>
         </div>
-      </div>
+      </Show>
 
       <div class="text-left w-[40vw] mt-12 space-y-4 relative z-30">
         <button
@@ -84,7 +86,7 @@ export default function HomeMain() {
           class="btn-primary"
         >
           <FaSolidDisplay class="w-4 h-4" />
-          <div class="font-bold text-sm">View All</div>
+          <div class="font-bold text-sm">Open View</div>
         </button>
 
         <div class="grid grid-cols-3 gap-4 ">

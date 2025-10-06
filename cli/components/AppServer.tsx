@@ -37,7 +37,7 @@ export default function AppServer() {
         apiServer = http.createServer(handleApiRequest);
 
         apiServer.listen(appConfig.get('rest_server.port'), () => {
-          log(`✓ API Server listening on http://localhost:${appConfig.get('rest_server.port')}`);
+          log(`✓ REST API Server listening on http://localhost:${appConfig.get('rest_server.port')}`);
         });
 
         viteProcess = spawn("npx", ["vite"], {
@@ -169,6 +169,6 @@ export default function AppServer() {
     <Text color="cyan">
       <Text bold>App:</Text> {status}
     </Text>
-    <Text color="gray">{output}</Text>
+    <Text color="gray">{output.join('\n')}</Text>
   </Box>
 }

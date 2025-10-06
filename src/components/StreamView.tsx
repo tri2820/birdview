@@ -42,7 +42,7 @@ export default function StreamView(props: {
 
             <button class="flex items-center space-x-2 text-neutral-400 hover:text-white px-2 h-12">
               <div class="text-xs  font-semibold">{name()}</div>
-              <BsChevronDown class="w-4 h-4" />
+              {/* <BsChevronDown class="w-4 h-4" /> */}
             </button>
 
             <div class="flex-1" />

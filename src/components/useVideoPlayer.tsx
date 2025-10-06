@@ -1,9 +1,11 @@
-import { createSignal, createEffect } from "solid-js";
+import { createSignal, createEffect, Show } from "solid-js";
 import { createElementSize } from "@solid-primitives/resize-observer";
+import { BsCloudSlashFill } from "solid-icons/bs";
 
 export default function useVideoPlayer(props?: { fit: "contain" | "cover" }) {
   const fit = () => props?.fit || "contain";
 
+  const [empty, setEmpty] = createSignal(true);
   const [imageBuffer, setImageBuffer] = createSignal<ArrayBuffer>();
   const [canvasRef, setCanvasRef] = createSignal<HTMLCanvasElement>();
   const [containerRef, setContainerRef] = createSignal<HTMLDivElement>();
@@ -98,17 +100,28 @@ export default function useVideoPlayer(props?: { fit: "contain" | "cover" }) {
   });
 
   return {
+    setEmpty,
     setCodecpar,
     setImageBuffer,
     component: () => {
       return (
         // This container defines the bounds for the canvas.
         <div class="flex-1 w-full  h-full relative" ref={setContainerRef}>
+
           <canvas
+            data-empty={empty()}
             // The canvas is stretched to fill the container by absolute positioning
-            class="absolute top-0 left-0 "
+            class="absolute top-0 left-0 data-[empty=true]:opacity-0"
             ref={setCanvasRef}
           />
+
+          <Show when={empty()}>
+            <div class="absolute top-0 left-0 bottom-0 right-0 bg-neutral-800">
+              <div class="flex items-center justify-center h-full w-full">
+                <BsCloudSlashFill class="w-16 h-16 text-neutral-600" />
+              </div>
+            </div>
+          </Show>
         </div>
       );
     },

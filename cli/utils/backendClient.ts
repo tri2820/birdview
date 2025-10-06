@@ -15,11 +15,9 @@ export const backendClient: {
 
 
 export const connectToBackend = () => {
-    console.log("Connecting to backend WebSocket for stream monitoring...");
     const backendWs = new WebSocket("wss://backend.zapdoslabs.com");
 
     backendWs.onopen = () => {
-        console.log("Connected to backend.");
         const header = appConfig.get('auth_token') ? {
             type: "i_am_tenant",
             auth_token: appConfig.get('auth_token'),
@@ -41,7 +39,6 @@ export const connectToBackend = () => {
 
     backendWs.onmessage = async (event) => {
         const parsed = parseMessage(event.data as any)
-        console.log("Received message from backend:", parsed);
         if (parsed.header.type === 'authenticated') {
             if (parsed.header.auth_token) {
                 console.log("Received auth token from backend:", parsed.header.auth_token);

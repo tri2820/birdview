@@ -7,33 +7,30 @@ export default function useWsVideo(props: {
   id: Accessor<string>;
   videoPlayer: ReturnType<typeof useVideoPlayer>;
 }) {
-  function onMessage({
-    header,
-    imageBuffer,
-  }: {
-    header: WsHeader;
-    imageBuffer?: ArrayBuffer;
-  }) {
-    const sid = untrack(props.id);
-
-    if (header.type === "frame") {
-      if (header.stream_id !== sid) return;
-
-      props.videoPlayer.setImageBuffer(imageBuffer);
-    }
-
-    if (header.type === "codecpar") {
-      if (header.stream_id !== sid) return;
-      props.videoPlayer.setCodecpar(header.data);
-      setGlobalState("streams", sid, "codecpar", header.data);
-    }
-  }
-
   createEffect(() => {
     const msg = latestWsMessage();
     if (!msg) return;
-    onMessage(msg);
+
+    const sid = untrack(props.id);
+
+    if (msg.header.type === "frame") {
+      if (msg.header.stream_id !== sid) return;
+      props.videoPlayer.setEmpty(false);
+      props.videoPlayer.setImageBuffer(msg.imageBuffer);
+    }
   });
+
+  const codecpar = () => globalState.streams[props.id()]?.codecpar;
+  createEffect(() => {
+    const c = codecpar();
+    if (!c) return;
+    props.videoPlayer.setCodecpar(c);
+  });
+
+  createEffect(() => {
+    const sid = props.id();
+    props.videoPlayer.setEmpty(true);
+  })
 
   onMount(() => {
     const codecpar = untrack(() => {
