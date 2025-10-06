@@ -15,7 +15,7 @@ export const backendClient: {
 
 
 export const connectToBackend = () => {
-    const backendWs = new WebSocket("wss://backend.zapdoslabs.com");
+    const backendWs = new WebSocket("wss://backend.zapdoslabs.com/ws");
 
     backendWs.onopen = () => {
         const header = appConfig.get('auth_token') ? {

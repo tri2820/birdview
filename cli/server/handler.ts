@@ -1,12 +1,15 @@
 import http from "http";
 import { URL } from "url";
 import { handleStatusRequest } from "./handlers/status";
-import { handleSearchRequest } from "./handlers/search";
-import { handleImageRequest } from "./handlers/image";
-import { handleSummarizeRequest } from "./handlers/summarize";
-import { handleMediaUnitRequest } from "./handlers/media-unit";
-import { appConfig, maskedConfig } from "../utils/config";
 import { handleSaveConfigRequest } from "./handlers/save-config";
+import { createProxy } from "./utils/proxy";
+
+// Create a single proxy instance for Zapdos Labs backend with auth token inclusion
+const zapdosProxy = createProxy({
+  target: "https://backend.zapdoslabs.com",
+  changeOrigin: true,
+  includeAuthToken: true,
+});
 
 export const handleApiRequest = async (
     req: http.IncomingMessage,
@@ -29,21 +32,15 @@ export const handleApiRequest = async (
             return handleSaveConfigRequest(req, res);
         }
 
-        // Proxy these specific API routes to cloud
-        if (pathname === "/api/v1/search") {
-            return await handleSearchRequest(req, res);
-        }
-
-        if (pathname === "/api/v1/image") {
-            return await handleImageRequest(req, res);
-        }
-
-        if (pathname === "/api/v1/summarize") {
-            return await handleSummarizeRequest(req, res);
-        }
-
-        if (pathname === "/api/v1/media-unit") {
-            return await handleMediaUnitRequest(req, res);
+        // Proxy these specific API routes to Zapdos Labs backend
+        if (
+            pathname === "/api/v1/search" ||
+            pathname === "/api/v1/image" ||
+            pathname === "/api/v1/summarize" ||
+            pathname === "/api/v1/media-unit"
+        ) {
+            zapdosProxy(req, res);
+            return true;
         }
 
         // If no API route matches, return 404
