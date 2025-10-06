@@ -98,7 +98,10 @@ export const appConfig = new Conf<AppConfig>({
 
 export function saveConfig(newConfig: any): { success: boolean; error?: any } {
   try {
+    const current = appConfig.store;
     const validatedConfig = appSchema.parse(newConfig);
+    // Preserve the existing auth_token, not allowing it to be changed via this method
+    validatedConfig.auth_token = current.auth_token
     appConfig.set(validatedConfig);
     return { success: true };
   } catch (error) {
