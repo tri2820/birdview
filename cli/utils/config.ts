@@ -96,6 +96,19 @@ export const appConfig = new Conf<AppConfig>({
   schema
 });
 
+export function saveConfig(newConfig: any): { success: boolean; error?: any } {
+  try {
+    const validatedConfig = appSchema.parse(newConfig);
+    appConfig.set(validatedConfig);
+    return { success: true };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return { success: false, error: error.format() };
+    }
+    return { success: false, error: 'An unknown error occurred.' };
+  }
+}
+
 export const argv_options = yargs(hideBin(process.argv))
   .version(process.env.APP_VERSION as string) // Use the injected version
   .option('dev', {

@@ -13,7 +13,7 @@ import {
   untrack,
 } from "solid-js";
 import {
-  config,
+  appConfig,
   setRecentSearches
 } from "../utils";
 
@@ -181,7 +181,7 @@ export default function SearchBar(props?: { variant?: "md" | "lg" }) {
       <Show when={showPopup()}>
         {(item) => {
           const name = () =>
-            config()?.streams[item().media_id]?.label || item().media_id;
+            appConfig()?.streams[item().media_id]?.label || item().media_id;
 
           // SIMPLIFIED: Image URL is now a direct link to the REST endpoint
           const imgUrl = () => `/api/v1/image?path=${encodeURIComponent(item().path)}`;
@@ -319,7 +319,7 @@ export default function SearchBar(props?: { variant?: "md" | "lg" }) {
                         <For each={state().result?.items}>
                           {(item) => {
                             const name = () =>
-                              config()?.streams[item.media_id]?.label ??
+                              appConfig()?.streams[item.media_id]?.label ??
                               item.media_id;
 
 

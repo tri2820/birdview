@@ -7,7 +7,7 @@ import { Accessor, createEffect, For, onMount, Show } from "solid-js";
 import SearchBar from "./SearchBar";
 import useWsVideo from "./useWsVideo";
 import useVideoPlayer from "./useVideoPlayer";
-import { config, recentSearches, setTabId, wsClient } from "../utils";
+import { appConfig, recentSearches, setTabId, wsClient } from "../utils";
 import { createMessage } from "../../message";
 
 function StreamItem(props: { id: Accessor<string> }) {
@@ -27,11 +27,11 @@ function StreamItem(props: { id: Accessor<string> }) {
 }
 
 export default function HomeMain() {
-  const streams = () => Object.keys(config()?.streams || {});
+  const streams = () => Object.keys(appConfig()?.streams || {});
 
   createEffect(() => {
     console.log("HomeMain mounted");
-    const streams = config()?.streams || {};
+    const streams = appConfig()?.streams || {};
     let subscribedStreams: any = {};
     for (const key of Object.keys(streams)) {
       // 1 is REDUCED FPS (1 fps)

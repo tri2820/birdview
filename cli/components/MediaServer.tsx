@@ -234,6 +234,23 @@ export default function MediaServer() {
   }, []);
 
   useEffect(() => {
+    const unsubscribe = appConfig.onDidAnyChange(() => {
+      log("Config changed, broadcasting to clients...");
+      broadcast({
+        header: {
+          type: "config",
+          data: maskedConfig(),
+        },
+        clients: Object.values(clients),
+      });
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
     Log.setCallback((level, message) => {
       if (level <= AV_LOG_WARNING) log("NODE-AV", message);
     });

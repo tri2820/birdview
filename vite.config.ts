@@ -2,9 +2,10 @@ import tailwindcss from "@tailwindcss/vite";
 import devtools from "solid-devtools/vite";
 import { defineConfig } from "vite";
 import solidPlugin from "vite-plugin-solid";
+import monacoEditorPlugin from 'vite-plugin-monaco-editor-esm';
 
 export default defineConfig({
-  plugins: [devtools(), solidPlugin(), tailwindcss()],
+  plugins: [devtools(), solidPlugin(), tailwindcss(), monacoEditorPlugin()],
   server: {
     port: process.env.VITE_PORT ? parseInt(process.env.VITE_PORT) : 3000,
     allowedHosts: ['demo.zapdoslabs.com'],

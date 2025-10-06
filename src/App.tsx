@@ -14,6 +14,7 @@ import {
 } from "./utils";
 import EventsMain from "./components/EventsMain";
 import { WsHeader } from "../types";
+import SettingsMain from "./components/SettingsMain";
 
 export default function App() {
   onMount(() => {
@@ -23,7 +24,7 @@ export default function App() {
   const sidebar = <SideBar />;
 
   return (
-    <Switch fallback={<div>Loading...</div>}>
+    <Switch fallback={<div class="p-4">Adventurer, you have reached the deep end. Please reload to go back safely.</div>}>
       <Match when={tabId().type === "stream"}>
         <StreamView sidebar={sidebar} id={() => (tabId() as any).stream_id} />
       </Match>
@@ -46,6 +47,9 @@ export default function App() {
 
       <Match when={tabId().type === "multiview"}>
         <TabLayout sidebar={sidebar} main={<MultiView />} />
+      </Match>
+      <Match when={tabId().type === "settings"}>
+        <TabLayout sidebar={sidebar} main={<SettingsMain />} />
       </Match>
     </Switch>
   );

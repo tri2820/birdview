@@ -9,7 +9,7 @@ import SearchBar from "./SearchBar";
 import useVideoPlayer from "./useVideoPlayer";
 import useWsVideo from "./useWsVideo";
 import GoBackButton from "./GoBackButton";
-import { config, wsClient } from "../utils";
+import { appConfig, wsClient } from "../utils";
 import { createMessage } from "../../message";
 
 export default function StreamView(props: {
@@ -19,7 +19,7 @@ export default function StreamView(props: {
   const videoPlayer = useVideoPlayer();
   useWsVideo({ id: props.id, videoPlayer });
 
-  const name = () => config()?.streams?.[props.id()]?.label || props.id();
+  const name = () => appConfig()?.streams?.[props.id()]?.label || props.id();
 
   createEffect(() => {
     const b = createMessage({

@@ -105,7 +105,7 @@ export const buildMarks = (range: TimeRange) => {
   return [...result, ...minorMarks];
 };
 
-export const [config, setConfig] = createSignal<any>();
+export const [appConfig, setAppConfig] = createSignal<Record<string, any>>();
 
 export type TabId =
   | {
@@ -120,6 +120,8 @@ export type TabId =
     stream_ids: string[];
   } | {
     type: "events"
+  } | {
+    type: "settings"
   }
 
 export const [tabId, _setTabId] = createSignal<TabId>({
@@ -281,12 +283,11 @@ export function setupWs() {
   });
 
   _socket.addEventListener("message", (event) => {
-    console.log("Received message from WebSocket server", event.data);
     const message = parseWsMessage(event.data);
     setLatestWsMessage(message);
 
     if (message.header.type === "config") {
-      setConfig(message.header.data);
+      setAppConfig(message.header.data);
     }
 
     if (message.header.type === "codecpar") {

@@ -6,6 +6,7 @@ import { handleImageRequest } from "./handlers/image";
 import { handleSummarizeRequest } from "./handlers/summarize";
 import { handleMediaUnitRequest } from "./handlers/media-unit";
 import { appConfig, maskedConfig } from "../utils/config";
+import { handleSaveConfigRequest } from "./handlers/save-config";
 
 export const handleApiRequest = async (
     req: http.IncomingMessage,
@@ -22,6 +23,10 @@ export const handleApiRequest = async (
     if (pathname.startsWith("/api/")) {
         if (pathname === "/api/v1/status") {
             return handleStatusRequest(req, res);
+        }
+
+        if (pathname === "/api/v1/save-config") {
+            return handleSaveConfigRequest(req, res);
         }
 
         // Proxy these specific API routes to cloud

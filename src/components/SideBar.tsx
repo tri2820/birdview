@@ -14,7 +14,8 @@ import {
   FiMessageCircle,
 } from "solid-icons/fi";
 import { createSignal, For, onMount, Show } from "solid-js";
-import { config, setTabId, tabId, TabId } from "../utils";
+import { appConfig, setTabId, tabId, TabId } from "../utils";
+import { BsGearFill } from "solid-icons/bs";
 
 
 function SideBarViewItem(props: { view: any }) {
@@ -53,7 +54,7 @@ function SideBarViewItem(props: { view: any }) {
       >
         <For each={props.view.streams}>
           {(stream_id) => {
-            const label = config()?.streams?.[stream_id].label || stream_id;
+            const label = appConfig()?.streams?.[stream_id].label || stream_id;
             return (
               <div
                 data-active={stream_id === (tabId() as any).stream_id}
@@ -77,7 +78,7 @@ function SideBarViewItem(props: { view: any }) {
 
 export default function SideBar() {
   const views = () => {
-    const cf = config();
+    const cf = appConfig();
     return cf?.views || [];
   };
 
@@ -103,7 +104,7 @@ export default function SideBar() {
   };
 
   return (
-    <div class="w-60 flex-none h-full bg-neutral-900 space-y-4">
+    <div class="w-60 flex-none h-full bg-neutral-900 space-y-4 flex flex-col select-none">
       <div class="mx-4 mt-4 flex items-center space-x-3">
         <img src="/logo.svg" class="w-10 h-10" />
         <div class="flex-1 font-montserrat font-bold text-white text-xl">
@@ -138,13 +139,24 @@ export default function SideBar() {
         <div class="flex items-center mx-4 space-x-1">
           <div class="text-xs font-semibold text-neutral-400">VIEWS</div>
 
-          <button class="p-1 rounded hover:text-white hover:bg-neutral-800 mr-2 text-neutral-500">
+          {/* <button class="p-1 rounded hover:text-white hover:bg-neutral-800 mr-2 text-neutral-500">
             <FaSolidPlus class="w-4 h-4" />
-          </button>
+          </button> */}
         </div>
         <div class="space-y-1">
           <For each={views()}>{(view) => <SideBarViewItem view={view} />}</For>
         </div>
+      </div>
+
+      <div class="flex-1" />
+
+      <div class="flex-none ">
+        <button
+          onClick={() => setTabId({ type: "settings" })}
+          class="w-full flex items-center space-x-2 px-4 py-3 hover:bg-neutral-800 text-neutral-400 hover:text-white">
+          <BsGearFill class="w-5 h-5" />
+          <div class="font-semibold">Settings</div>
+        </button>
       </div>
     </div>
   );

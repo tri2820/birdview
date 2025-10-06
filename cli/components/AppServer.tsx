@@ -57,7 +57,7 @@ export default function AppServer() {
         });
 
         viteProcess.stderr?.on("data", (data) => {
-          log(data.toString());
+          console.error(data.toString());
         });
 
         viteProcess.on("close", (code) => {

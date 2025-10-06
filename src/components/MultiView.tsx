@@ -1,6 +1,6 @@
 import { FaSolidArrowLeft, FaSolidExpand } from "solid-icons/fa";
 import { Accessor, createEffect, For, onMount } from "solid-js";
-import { config, goBackTabId, setTabId, tabId, wsClient } from "../utils";
+import { appConfig, goBackTabId, setTabId, tabId, wsClient } from "../utils";
 import useVideoPlayer from "./useVideoPlayer";
 import useWsVideo from "./useWsVideo";
 import GoBackButton from "./GoBackButton";
@@ -11,7 +11,7 @@ function StreamItem(props: { id: Accessor<string> }) {
   useWsVideo({ id: props.id, videoPlayer });
 
   const label = () => {
-    return config()?.streams?.[props.id()]?.label || props.id();
+    return appConfig()?.streams?.[props.id()]?.label || props.id();
   };
   return (
     <div class="h-full overflow-hidden relative ">
