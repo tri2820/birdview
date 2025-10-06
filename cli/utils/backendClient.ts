@@ -1,5 +1,5 @@
 import { createMessage, parseMessage } from "../../message";
-import { mediaConfig } from "./config";
+import { appConfig } from "./config";
 import { WsClientWrapper } from "./ws_utils";
 
 import { WebSocket } from "ws";
@@ -14,15 +14,15 @@ export const backendClient: {
 }
 
 
-const connectToBackend = () => {
+export const connectToBackend = () => {
     console.log("Connecting to backend WebSocket for stream monitoring...");
     const backendWs = new WebSocket("wss://backend.zapdoslabs.com");
 
     backendWs.onopen = () => {
         console.log("Connected to backend.");
-        const header = mediaConfig.auth_token ? {
+        const header = appConfig.get('auth_token') ? {
             type: "i_am_tenant",
-            auth_token: mediaConfig.auth_token,
+            auth_token: appConfig.get('auth_token'),
         } : {
             type: "i_am_tenant",
             create_new: true,
@@ -40,7 +40,14 @@ const connectToBackend = () => {
 
 
     backendWs.onmessage = async (event) => {
-        // const data = parseMessage(event.data as any).header as any;
+        const parsed = parseMessage(event.data as any)
+        console.log("Received message from backend:", parsed);
+        if (parsed.header.type === 'authenticated') {
+            if (parsed.header.auth_token) {
+                console.log("Received auth token from backend:", parsed.header.auth_token);
+                appConfig.set('auth_token', parsed.header.auth_token);
+            }
+        }
     };
 
     backendWs.onerror = (err) => {
@@ -54,4 +61,3 @@ const connectToBackend = () => {
     };
 };
 
-connectToBackend();

@@ -1,88 +1,75 @@
-import yargs from "yargs";
+import { z } from 'zod';
+import { zodToJsonSchema } from 'zod-to-json-schema';
+import Conf from 'conf';
 import { hideBin } from "yargs/helpers";
-import fs from "fs";
-import path from "path";
+import yargs from 'yargs';
 
-export type ConfigViewItem = {
-  label: string;
-  streams: string[];
-};
+// 1. Define the schema for a single stream item
+const streamItemSchema = z.object({
+  uri: z.string(),
+  label: z.string().optional(),
+});
 
-export type AppConfig = {
-  port: number;
-  rest_server: {
-    port: number;
-  };
-  media_server: {
-    port: number;
-  };
-  auth_token: string;
-  streams: {
-    [id: string]: {
-      label?: string;
-      uri: string;
-    };
-  };
-  views?: ConfigViewItem[];
-};
+// 2. Define the main application schema using Zod
+const appSchema = z.object({
+  port: z.number().default(6700),
+  rest_server: z.object({
+    port: z.number(),
+  }).default({
+    port: 6710,
+  }),
+  media_server: z.object({
+    port: z.number(),
+  }).default({
+    port: 6720,
+  }),
+  auth_token: z.string().nullable().default(null),
+  streams: z.record(z.string(), streamItemSchema).default({}),
+  views: z.array(z.object({
+    label: z.string(),
+    streams: z.array(z.string()),
+  })).default([]),
+});
+
+// 3. Infer the TypeScript type
+export type AppConfig = z.infer<typeof appSchema>;
+
+// 4. Generate the JSON Schema
+const jsonSchema = zodToJsonSchema(appSchema, 'appSchema');
+
+if (jsonSchema.definitions === undefined) {
+  throw new Error("Failed to generate JSON schema definitions");
+}
+
+const schemaDefinition = jsonSchema.definitions.appSchema;
+const schema = (schemaDefinition as any).properties
+export const appConfig = new Conf<AppConfig>({
+  projectName: 'birdview',
+  schema
+});
+
+export const argv_options = yargs(hideBin(process.argv))
+  .version(process.env.APP_VERSION as string) // Use the injected version
+  .option('dev', {
+    type: 'boolean',
+    description: 'Run the application in development mode (starts Vite)',
+    default: false, // Default to production
+  })
+  .option('show-config-path', {
+    type: 'boolean',
+    description: 'Show the path to the config file',
+    default: false,
+  })  // Enable the help option, which is --help by default
+  // Define 'h' and 'help' as boolean options without a special function
+  .option('h', {
+    alias: 'help',
+    describe: 'Show help message',
+    type: 'boolean'
+  })
+
 
 
 export function getArgv() {
-  const argv = yargs(hideBin(process.argv))
-    .version(process.env.APP_VERSION as string) // Use the injected version
-    .option("config", {
-      alias: "c",
-      type: "string",
-      description: "Path to config file",
-    })
-    .option('dev', {
-      type: 'boolean',
-      description: 'Run the application in development mode (starts Vite)',
-      default: false, // Default to production
-    })
-    .parseSync();
+  const argv = argv_options.parseSync();
   return argv;
 }
-
-function readConfigFile(configPath: string) {
-  try {
-    const configFile = fs.readFileSync(configPath, "utf-8");
-    return JSON.parse(configFile);
-  } catch (error) {
-    console.error(`Error reading config file at ${configPath}:`, error);
-    process.exit(1);
-  }
-}
-
-export function writeConfigFile(configPath: string, config: AppConfig) {
-  try {
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
-  } catch (error) {
-    console.error(`Error writing config file at ${configPath}:`, error);
-  }
-}
-
-export async function getConfig() {
-  const argv = getArgv();
-  const configPath = argv.config;
-  const config: AppConfig = configPath ? readConfigFile(configPath) : {};
-
-  if (!config.port) config.port = 6820;
-  // @ts-ignore
-  if (!config.media_server) config.media_server = {};
-  if (!config.media_server.port) config.media_server.port = 5820;
-  // @ts-ignore
-  if (!config.rest_server) config.rest_server = {};
-  if (!config.rest_server.port) config.rest_server.port = 5820;
-
-  if (!config.auth_token) {
-    console.log('Config file does not contain "auth_token", server will create a new *guest* tenant for you.');
-    // tenant creation will be handled by first connection to backend
-  }
-
-  if (!config.streams) config.streams = {};
-  return config;
-}
-
-export const mediaConfig = await getConfig();
-

@@ -6,11 +6,12 @@ import { WebSocketServer } from "ws";
 import { createMessage, parseMessage } from "../../message";
 import type { WsHeader } from "../../types";
 import { backendClient } from "../utils/backendClient";
-import { mediaConfig } from "../utils/config";
 import { logger } from "../utils/logger";
 import { ForwardMessage, forwardStream } from "../utils/startForward";
 import { WsClient } from "../utils/ws_utils";
 import React from "react";
+import { appConfig } from "../utils/config";
+
 export default function MediaServer() {
   const [output, setOutput] = useState<string[]>([]);
 
@@ -152,10 +153,9 @@ export default function MediaServer() {
   async function startMediaServer() {
     // Placeholder for WebSocket server logic
     // This function would set up a WebSocket server to stream media frames to connected clients
-    log("Starting Media WebSocket Server...");
+    console.log("Starting Media WebSocket Server...", appConfig.get('media_server.port'));
 
-    // Create a new WebSocket server on configurable port
-    const wss = new WebSocketServer({ port: mediaConfig.media_server.port });
+    const wss = new WebSocketServer({ port: appConfig.get('media_server.port') });
 
     // This event listener is fired when a new client connects to the server
     wss.on("connection", (ws, req) => {
@@ -181,7 +181,7 @@ export default function MediaServer() {
       broadcast({
         header: {
           type: "config",
-          data: mediaConfig,
+          data: appConfig.get('mediaConfig'),
         },
         clients: [clients[id]],
       });
@@ -231,15 +231,18 @@ export default function MediaServer() {
 
     log(
       "WebSocket server is running on ws://localhost:" +
-      mediaConfig.media_server.port
+      appConfig.get('media_server.port')
     );
   }
 
   useEffect(() => {
-    Object.entries(mediaConfig.streams).forEach(([id, stream]) => {
+    Object.entries(appConfig.get('streams')).forEach(([id, stream]) => {
       loopStream(id, stream.uri);
     });
-    startMediaServer();
+
+
+    startMediaServer()
+
   }, []);
 
   useEffect(() => {
@@ -262,7 +265,7 @@ export default function MediaServer() {
     >
       <Text color="green">
         <Text bold>Media Source:</Text> Streaming at :
-        {mediaConfig.media_server.port}
+        {appConfig.get('media_server.port')}
       </Text>
       <Text color="gray">{output.join("\n")}</Text>
     </Box>

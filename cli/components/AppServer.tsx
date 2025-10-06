@@ -6,7 +6,7 @@ import mime from "mime-types";
 import path from "path";
 import { useEffect, useState } from "react";
 import { fileURLToPath } from "url";
-import { getArgv, mediaConfig } from "../utils/config";
+import { appConfig, getArgv } from "../utils/config";
 import { logger } from "../utils/logger";
 import { handleApiRequest } from "../server/handler";
 import { Box, Text } from "ink";
@@ -36,8 +36,8 @@ export default function AppServer() {
         // Create a simple API server
         apiServer = http.createServer(handleApiRequest);
 
-        apiServer.listen(mediaConfig.rest_server.port, () => {
-          log(`✓ API Server listening on http://localhost:${mediaConfig.rest_server.port}`);
+        apiServer.listen(appConfig.get('rest_server.port'), () => {
+          log(`✓ API Server listening on http://localhost:${appConfig.get('rest_server.port')}`);
         });
 
         viteProcess = spawn("npx", ["vite"], {
@@ -45,9 +45,9 @@ export default function AppServer() {
           env: {
             ...process.env,
             FORCE_COLOR: "1",
-            VITE_REST_SERVER_PORT: mediaConfig.rest_server.port.toString(),
-            VITE_PORT: mediaConfig.port.toString(),
-            VITE_MEDIA_SERVER_PORT: mediaConfig.media_server.port.toString(),
+            VITE_REST_SERVER_PORT: appConfig.get('rest_server.port').toString(),
+            VITE_PORT: appConfig.get('port').toString(),
+            VITE_MEDIA_SERVER_PORT: appConfig.get('media_server.port').toString(),
           },
           cwd: root,
         });
@@ -66,8 +66,8 @@ export default function AppServer() {
 
         viteProcess.on("spawn", () => {
           setStatus("Development Server Running");
-          log(`✓ Vite Dev Server: http://localhost:${mediaConfig.port}`);
-          log(`✓ WebSocket: ws://localhost:${mediaConfig.port}/ws (proxied via vite.config.ts)`);
+          log(`✓ Vite Dev Server: http://localhost:${appConfig.get('port')}`);
+          log(`✓ WebSocket: ws://localhost:${appConfig.get('port')}/ws (proxied via vite.config.ts)`);
         });
 
       } else {
@@ -75,7 +75,7 @@ export default function AppServer() {
         setStatus("Starting Production Server...");
 
         proxy = httpProxy.createProxyServer({
-          target: `http://localhost:${mediaConfig.media_server.port}`,
+          target: `http://localhost:${appConfig.get('media_server.port')}`,
           ws: true,
         });
 
@@ -128,11 +128,11 @@ export default function AppServer() {
           }
         });
 
-        server.listen(mediaConfig.port, () => {
-          const url = `http://localhost:${mediaConfig.port}`;
+        server.listen(appConfig.get('port'), () => {
+          const url = `http://localhost:${appConfig.get('port')}`;
           setStatus("Production Server Running");
           log(`✓ Production Server: ${url}`);
-          log(`✓ WebSocket: ${url}/ws -> :${mediaConfig.media_server.port}`);
+          log(`✓ WebSocket: ${url}/ws -> :${appConfig.get('media_server.port')}`);
         });
       }
     };
