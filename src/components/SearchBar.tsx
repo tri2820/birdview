@@ -13,7 +13,6 @@ import { setState } from "./search/utils";
 
 
 export default function SearchBar(props?: { variant?: "md" | "lg" }) {
-  const [selectedItem, setSelectedItem] = createSignal<any>();
 
 
   const variant = () => props?.variant || "md";
@@ -79,10 +78,15 @@ export default function SearchBar(props?: { variant?: "md" | "lg" }) {
     }
   });
 
+  function doSubmit(query: string) {
+    setIsOpen(false);
+    console.log('query', query)
+  }
+
   return (
     <div>
       <Backdrop isOpen={isOpen} barRef={barRef} setIsOpen={setIsOpen} />
-      <DetailedItemView item={selectedItem} setItem={setSelectedItem} />
+      {/* <DetailedItemView item={selectedItem} setItem={setSelectedItem} /> */}
 
       <div
         ref={setBarRef}
@@ -91,10 +95,7 @@ export default function SearchBar(props?: { variant?: "md" | "lg" }) {
         class="z-[200] absolute top-1 left-1/2 -translate-x-1/2 w-[24rem] data-[variant=lg]:w-[40vw] data-[open=true]:top-10 transition-[top,width,box-shadow] duration-300 ease-in-out data-[open=true]:w-[50vw] data-[variant=lg]:data-[open=true]:w-[50vw] data-[open=true]:drop-shadow-lg  data-[open=true]:border border-neutral-800  data-[open=false]:rounded-full  data-[open=true]:rounded-2xl overflow-hidden bg-neutral-900 data-[open=true]:bg-neutral-900 "
       >
         <SearchInput
-          onSubmit={(query) => {
-            setIsOpen(false);
-            console.log('query', query)
-          }}
+          onSubmit={doSubmit}
           query={query}
           setQuery={setQuery}
           isOpen={isOpen}
@@ -103,11 +104,11 @@ export default function SearchBar(props?: { variant?: "md" | "lg" }) {
         />
 
         <Show when={isOpen()}>
-          <div
-            class="w-full border-t border-neutral-800"
-          >
-            <SearchDropdown query={query} selectItem={setSelectedItem} />
-          </div>
+
+          <SearchDropdown query={query} selectItem={(item) => {
+            doSubmit(item.text);
+          }} />
+
         </Show>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { BsSearch } from "solid-icons/bs";
+import { AiOutlineEnter } from "solid-icons/ai";
 import { untrack } from "solid-js/web";
 
 export default function SearchInput(props: {
@@ -26,8 +27,21 @@ export default function SearchInput(props: {
 
     <div
       data-open={props.isOpen()}
-      class="h-full flex items-center justify-center data-[open=true]:justify-end"
+      class="h-full flex items-center justify-center data-[open=true]:justify-end relative"
     >
+      <div
+        data-open={props.isOpen()}
+        class="absolute top-7 right-4 data-[open=false]:hidden">
+        <button
+          onClick={() => {
+            props.onSubmit(untrack(props.query));
+          }}
+          class="text-neutral-600 flex items-center space-x-1 hover:bg-neutral-800 hover:text-white px-2 py-1 rounded-md">
+          <div class="text-sm font-semibold">Enter</div>
+          <AiOutlineEnter class="w-5 h-5 " />
+        </button>
+      </div>
+
       <input
         onKeyDown={(e) => {
           if (e.key === "Enter") {

@@ -9,21 +9,28 @@ export default function SearchDropdown(props: {
 }) {
 
   const autocompleteItems = () => state().autocomplete?.items || [];
-  return (
-    <Show
-      when={state().type == "autocompleting"}
-      fallback={
-        <Show when={autocompleteItems().length > 0} >
-          <div class="flex-1 h-full flex flex-col">
-            <div class="overflow-x-hidden overflow-y-auto flex-1">
-              <For each={autocompleteItems()}>
-                {(item) => <AutocompleteRow item={item} selectItem={props.selectItem} />}
-              </For>
-            </div>
-          </div></Show>
-      }
+  const loading = () => state().type === "autocompleting";
+
+  return <Show when={loading() || autocompleteItems().length > 0}>
+    <div
+      class="w-full border-t border-neutral-800"
     >
-      <LoadingSkeleton />
-    </Show>
-  );
+      <Show
+        when={loading()}
+        fallback={
+          <Show when={autocompleteItems().length > 0} >
+            <div class="flex-1 h-full flex flex-col">
+              <div class="overflow-x-hidden overflow-y-auto flex-1">
+                <For each={autocompleteItems()}>
+                  {(item) => <AutocompleteRow item={item} selectItem={props.selectItem} />}
+                </For>
+              </div>
+            </div></Show>
+        }
+      >
+        <LoadingSkeleton />
+      </Show>
+    </div>
+  </Show>
+
 }
