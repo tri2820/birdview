@@ -65,7 +65,11 @@ export default function HomeMain() {
             <For each={recentSearches()}>
               {(item) => {
                 return (
-                  <div class="text-neutral-300 hover:text-white cursor-pointer px-6 py-4 border-b border-neutral-800">
+                  <div
+                    onClick={() => {
+                      setTabId({ type: "search-result", query: item });
+                    }}
+                    class="text-neutral-300 hover:text-white cursor-pointer px-6 py-4 border-b border-neutral-800">
                     {item}
                   </div>
                 );

@@ -43,15 +43,15 @@ export default function ItemRow(props: {
 
     return (
         <div
-            class="p-4 hover:bg-neutral-800 cursor-pointer flex items-start space-x-4"
+            class="p-4 hover:bg-white/5 cursor-pointer flex items-start space-x-4 rounded-lg group text-neutral-400 hover:text-white"
             onClick={() => {
                 // setIsOpen(false);
                 props.selectItem(props.item);
             }}
         >
             <div class="flex-1">
-                <div class="flex items-center space-x-2 py-2">
-                    <BiSolidCctv class="w-4 h-4 text-neutral-400" />
+                <div class="flex items-center space-x-2 py-2 ">
+                    <BiSolidCctv class="w-4 h-4 " />
                     <div>{name()}</div>
                     <div>•</div>
                     <div class="text-sm">

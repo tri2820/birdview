@@ -63,3 +63,7 @@ body {
   @apply flex items-center space-x-2 text-neutral-400 hover:text-white transition-all duration-100 bg-neutral-900 hover:bg-neutral-800 border 
   border-neutral-800 hover:border-neutral-700 hover:drop-shadow-2xl px-4 py-2 rounded-lg
 }
+
+.btn-tertiary {
+  @apply flex items-center space-x-2 text-neutral-400 hover:text-white transition-all duration-100 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700/0 hover:border-neutral-700 px-4 py-2 rounded-full
+}

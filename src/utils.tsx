@@ -123,7 +123,8 @@ export type TabId =
   } | {
     type: "settings"
   } | {
-    type: "search-result"
+    type: "search-result",
+    query: string,
   }
 
 export const [tabId, _setTabId] = createSignal<TabId>({

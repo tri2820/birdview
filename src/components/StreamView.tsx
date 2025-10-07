@@ -46,7 +46,7 @@ export default function StreamView(props: {
             </button>
 
             <div class="flex-1" />
-            <SearchBar />
+            <SearchBar placeholder={() => "Search Library"} />
 
             <button class="rounded-full p-2  hover:bg-neutral-800 hover:text-white text-neutral-400">
               <BsBellFill class="w-4 h-4 " />

@@ -1,4 +1,4 @@
-import { createSignal, onMount, untrack } from "solid-js";
+import { createEffect, createSignal, onMount, untrack } from "solid-js";
 
 
 const PLACEHOLDERS = [
@@ -12,8 +12,14 @@ const PLACEHOLDERS = [
 ];
 
 
-export function usePlaceholder(props: { no_animation: boolean }) {
+export function usePlaceholder(props: { placeholder?: () => string | undefined | null }) {
     const [placeholder, setPlaceholder] = createSignal("Search");
+    createEffect(() => {
+        const p = props.placeholder?.()
+        if (p) {
+            setPlaceholder(p);
+        }
+    })
 
     const longestCommonPrefix = (a: string, b: string) => {
         let i = 0;
@@ -24,7 +30,7 @@ export function usePlaceholder(props: { no_animation: boolean }) {
     };
 
     onMount(async () => {
-        if (props.no_animation) return;
+        if (props.placeholder) return;
         let index = 0;
         while (true) {
             let current = untrack(placeholder);
