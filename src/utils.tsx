@@ -122,6 +122,8 @@ export type TabId =
     type: "events"
   } | {
     type: "settings"
+  } | {
+    type: "search-result"
   }
 
 export const [tabId, _setTabId] = createSignal<TabId>({

@@ -15,6 +15,7 @@ import {
 import EventsMain from "./components/EventsMain";
 import { WsHeader } from "../types";
 import SettingsMain from "./components/SettingsMain";
+import SearchResultMain from "./components/SearchResultMain";
 
 export default function App() {
   onMount(() => {
@@ -50,6 +51,10 @@ export default function App() {
       </Match>
       <Match when={tabId().type === "settings"}>
         <TabLayout sidebar={sidebar} main={<SettingsMain />} />
+      </Match>
+
+      <Match when={tabId().type === "search-result"}>
+        <TabLayout sidebar={sidebar} main={<SearchResultMain />} />
       </Match>
     </Switch>
   );
