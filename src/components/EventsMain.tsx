@@ -1,6 +1,7 @@
 import { createSignal, onMount, For } from 'solid-js';
 import { MediaUnit } from '../../types';
-import { FaSolidChevronLeft, FaSolidChevronRight } from 'solid-icons/fa';
+import { FaSolidArrowsRotate, FaSolidChevronLeft, FaSolidChevronRight } from 'solid-icons/fa';
+import { appConfig } from '../utils';
 type PaginationResponse = {
     items: MediaUnit[];
     pagination: {
@@ -83,7 +84,18 @@ export default function EventsMain() {
     return (
         <div class="h-screen flex flex-col border-l border-neutral-800 bg-neutral-900">
             <div class="flex-none px-4 py-4 text-lg bg-neutral-900 border-b border-neutral-800">
-                <div class="text-white font-bold">Events</div>
+                <div class="flex items-center justify-between">
+                    <div class="text-white font-bold">Events</div>
+                    <button
+                        onClick={() => fetchMediaUnits(pagination().page, pagination().limit)}
+                        disabled={loading()}
+                        class="btn-secondary"
+                        title="Refresh events"
+                    >
+                        <FaSolidArrowsRotate class="w-4 h-4" />
+                        <span class="text-sm">Refresh</span>
+                    </button>
+                </div>
             </div>
             <div class="px-4 py-3 border-b border-neutral-800 bg-neutral-900">
                 {/* Pagination Controls */}
@@ -192,49 +204,46 @@ export default function EventsMain() {
                         <table class="min-w-full table-auto">
                             <thead class="bg-neutral-800 sticky top-0 z-10">
                                 <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-neutral-300 uppercase tracking-wider">Media ID</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-neutral-300 uppercase tracking-wider">Time</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-neutral-300 uppercase tracking-wider">Description</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-neutral-300 uppercase tracking-wider">Embedding</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-neutral-300 uppercase tracking-wider">Media ID</th>
+
                                 </tr>
                             </thead>
                             <tbody class="bg-neutral-900 divide-y divide-neutral-800">
                                 {loading() ? (
                                     <tr>
-                                        <td colspan="4" class="px-6 py-12 text-center text-neutral-400">
+                                        <td colspan="3" class="px-6 py-12 text-center text-neutral-400">
                                             Loading...
                                         </td>
                                     </tr>
                                 ) : error() ? (
                                     <tr>
-                                        <td colspan="4" class="px-6 py-12 text-center text-red-500">
+                                        <td colspan="3" class="px-6 py-12 text-center text-red-500">
                                             Error: {error()}
                                         </td>
                                     </tr>
                                 ) : mediaUnits().length > 0 ? (
                                     <For each={mediaUnits()}>
-                                        {(unit) => (
-                                            <tr class="hover:bg-neutral-800 transition-colors">
+                                        {(unit) => {
+                                            const label = appConfig()?.streams[unit.media_id]?.label || unit.media_id;
+                                            return <tr class="hover:bg-neutral-800 transition-colors">
+                                                <td class="px-6 py-4 text-sm text-neutral-300">
+                                                    {label()}
+                                                </td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-300">
                                                     {new Date(unit.at_time).toLocaleString()}
                                                 </td>
                                                 <td class="px-6 py-4 text-sm text-neutral-300 max-w-md">
                                                     {unit.description || <span class="text-neutral-500 italic">No description</span>}
                                                 </td>
-                                                <td class="px-6 py-4 text-sm text-neutral-300">
-                                                    {unit.embedding && unit.embedding.length > 0
-                                                        ? `[${unit.embedding.slice(0, 3).join(', ')}${unit.embedding.length > 3 ? '...' : ''}]`
-                                                        : <span class="text-neutral-500 italic">Empty</span>}
-                                                </td>
-                                                <td class="px-6 py-4 text-sm text-neutral-300">
-                                                    {unit.media_id}
-                                                </td>
+
                                             </tr>
-                                        )}
+                                        }}
                                     </For>
                                 ) : (
                                     <tr>
-                                        <td colspan="4" class="px-6 py-12 text-center text-neutral-400">
+                                        <td colspan="3" class="px-6 py-12 text-center text-neutral-400">
                                             No events found
                                         </td>
                                     </tr>

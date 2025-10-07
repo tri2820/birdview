@@ -6,9 +6,9 @@ import { createProxy } from "./utils/proxy";
 
 // Create a single proxy instance for Zapdos Labs backend with auth token inclusion
 const zapdosProxy = createProxy({
-  target: "https://backend.zapdoslabs.com",
-  changeOrigin: true,
-  includeAuthToken: true,
+    target: "https://backend.zapdoslabs.com",
+    changeOrigin: true,
+    includeAuthToken: true,
 });
 
 export const handleApiRequest = async (
@@ -35,7 +35,7 @@ export const handleApiRequest = async (
         // Proxy these specific API routes to Zapdos Labs backend
         if (
             pathname === "/api/v1/search" ||
-            pathname === "/api/v1/image" ||
+            pathname === "/api/v1/storage" ||
             pathname === "/api/v1/summarize" ||
             pathname === "/api/v1/media-unit"
         ) {

@@ -120,12 +120,19 @@ export default function SearchBar(props?: { variant?: "md" | "lg" }) {
 
     searchTimeout = setTimeout(async () => {
       try {
-        const response = await fetch(`/api/v1/search?q=${encodeURIComponent(q)}`);
+        const response = await fetch(`/api/v1/search`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ query: q }),
+        });
         if (!response.ok) {
           setState({ type: "result", query: q, result: { items: [] } }); // Show empty result on error
           throw new Error("Search request failed");
         }
         const data = await response.json();
+        console.log("Search results:", data);
 
         setRecentSearches((old) => {
           const newSearches = [q, ...old.filter((s) => s !== q)];
@@ -135,7 +142,7 @@ export default function SearchBar(props?: { variant?: "md" | "lg" }) {
         setState({
           type: "result",
           query: q,
-          result: data,
+          result: { items: data.items || [] },
         });
       } catch (error) {
         console.error("Failed to fetch search results:", error);
@@ -184,7 +191,7 @@ export default function SearchBar(props?: { variant?: "md" | "lg" }) {
             appConfig()?.streams[item().media_id]?.label || item().media_id;
 
           // SIMPLIFIED: Image URL is now a direct link to the REST endpoint
-          const imgUrl = () => `/api/v1/image?path=${encodeURIComponent(item().path)}`;
+          const imgUrl = () => `/api/v1/storage?id=${encodeURIComponent(item().id)}&raw=1`;
 
           return (
             <div class="fixed h-[100vh] w-[100vw] top-0 left-0  z-[500]">
@@ -323,7 +330,7 @@ export default function SearchBar(props?: { variant?: "md" | "lg" }) {
                               item.media_id;
 
 
-                            const imgUrl = () => `/api/v1/image?path=${encodeURIComponent(item.path)}`;
+                            const imgUrl = () => `/api/v1/storage?id=${encodeURIComponent(item.id)}&raw=1`;
 
 
                             const desc = () => {
@@ -335,7 +342,6 @@ export default function SearchBar(props?: { variant?: "md" | "lg" }) {
                                 "The image captures",
                                 "This image captures",
                               ];
-
                               let d = item.description.trim();
                               for (const prefix of removePrefixes) {
                                 if (d.startsWith(prefix)) {
@@ -349,6 +355,8 @@ export default function SearchBar(props?: { variant?: "md" | "lg" }) {
 
                               return d;
                             };
+
+                            const score = () => 1 - item._distance / 2 + 0.5;
 
                             return (
                               <div
@@ -376,7 +384,7 @@ export default function SearchBar(props?: { variant?: "md" | "lg" }) {
                                   <div class="pt-4 flex items-center">
                                     <div class="text-xs text-[#a3eeef] border border-[#4c6f73] rounded-full bg-[#28393e] px-2 py-1">
                                       {/* Rounded to 2 decimal places */}
-                                      relevant: {item.score.toFixed(2)}
+                                      relevant: {score().toFixed(2)}
                                     </div>
                                   </div>
                                 </div>
