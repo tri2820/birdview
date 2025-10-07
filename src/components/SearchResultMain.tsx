@@ -87,8 +87,10 @@ export default function SearchResultMain() {
                     </button>
                 </div>
 
-                <div class="relative h-20 flex-none">
-                    <SearchBar variant="lg" placeholder={q} scheme="lighter" />
+                <div
+                    data-scheme="lighter"
+                    class="group relative h-20 flex-none">
+                    <SearchBar variant="lg" placeholder={q} />
                 </div>
 
                 <div class="text-neutral-400 flex-1 ">
@@ -104,9 +106,10 @@ export default function SearchResultMain() {
                         {s => <Show when={s().results.length === 0} fallback={
                             <div >
                                 <For each={s().results}>
-                                    {r => <ItemRow item={r} selectItem={() => {
-                                        console.log("Select item", r);
-                                    }} />}
+                                    {r => <ItemRow
+                                        item={r} selectItem={() => {
+                                            console.log("Select item", r);
+                                        }} />}
                                 </For>
 
                             </div>

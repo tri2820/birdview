@@ -12,8 +12,7 @@ import { setState } from "./search/utils";
 
 
 
-export default function SearchBar(props?: { variant?: "md" | "lg", scheme?: "dark" | "lighter", placeholder?: () => string | undefined | null }) {
-  const scheme = () => props?.scheme || "dark";
+export default function SearchBar(props?: { variant?: "md" | "lg", placeholder?: () => string | undefined | null }) {
   const variant = () => props?.variant || "md";
   const { placeholder } = usePlaceholder({
     placeholder: props?.placeholder
@@ -85,8 +84,7 @@ export default function SearchBar(props?: { variant?: "md" | "lg", scheme?: "dar
         ref={setBarRef}
         data-variant={variant()}
         data-open={isOpen()}
-        data-scheme={scheme()}
-        class="z-[200] absolute top-1 left-1/2 -translate-x-1/2 w-[24rem] data-[variant=lg]:w-[40vw] data-[open=true]:top-10 transition-[top,width,box-shadow] duration-300 ease-in-out data-[open=true]:w-[50vw] data-[variant=lg]:data-[open=true]:w-[50vw] data-[open=true]:drop-shadow-lg  data-[open=true]:border border-neutral-800  data-[open=false]:rounded-full  data-[open=true]:rounded-2xl overflow-hidden data-[scheme=lighter]:bg-neutral-800 bg-neutral-900 data-[open=true]:bg-neutral-900 "
+        class="z-[200] absolute top-1 left-1/2 -translate-x-1/2 w-[24rem] data-[variant=lg]:w-[40vw] data-[open=true]:top-10 transition-[top,width,box-shadow] duration-300 ease-in-out data-[open=true]:w-[50vw] data-[variant=lg]:data-[open=true]:w-[50vw] data-[open=true]:drop-shadow-lg  data-[open=true]:border border-neutral-800  data-[open=false]:rounded-full  data-[open=true]:rounded-2xl overflow-hidden group-data-[scheme=lighter]:bg-neutral-800 bg-neutral-900 data-[open=true]:bg-neutral-900 "
       >
         <SearchInput
           onSubmit={doSubmit}
@@ -99,9 +97,10 @@ export default function SearchBar(props?: { variant?: "md" | "lg", scheme?: "dar
 
         <Show when={isOpen()}>
 
-          <SearchDropdown query={query} selectItem={(item) => {
-            doSubmit(item.text);
-          }} />
+          <SearchDropdown
+            query={query} selectItem={(item) => {
+              doSubmit(item.text);
+            }} />
 
         </Show>
       </div>
