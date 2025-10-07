@@ -1,4 +1,5 @@
 import { BsSearch } from "solid-icons/bs";
+import { untrack } from "solid-js/web";
 
 export default function SearchInput(props: {
   query: () => string;
@@ -6,6 +7,7 @@ export default function SearchInput(props: {
   isOpen: () => boolean;
   variant: () => "md" | "lg";
   placeholder: () => string;
+  onSubmit: (query: string) => void;
 }) {
   return <div
     data-variant={props.variant()}
@@ -27,6 +29,12 @@ export default function SearchInput(props: {
       class="h-full flex items-center justify-center data-[open=true]:justify-end"
     >
       <input
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            props.onSubmit(untrack(props.query));
+          }
+        }}
         value={props.query()}
         onInput={(e) => {
           props.setQuery(e.currentTarget.value);

@@ -37,6 +37,7 @@ export const handleApiRequest = async (
             pathname === "/api/v1/search" ||
             pathname === "/api/v1/storage" ||
             pathname === "/api/v1/summarize" ||
+            pathname === "/api/v1/autocomplete" ||
             pathname === "/api/v1/media-unit"
         ) {
             zapdosProxy(req, res);
