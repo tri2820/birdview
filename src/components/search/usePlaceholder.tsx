@@ -1,0 +1,54 @@
+import { createSignal, onMount, untrack } from "solid-js";
+
+
+const PLACEHOLDERS = [
+    "current occupancy of the loading dock",
+    "potential equipment failures in the warehouse",
+    "back door access last night",
+    "a car parking in spot 42",
+    "total number of guests today",
+    "unattended packages",
+    "delivery truck arriving",
+];
+
+
+export function usePlaceholder(props: { no_animation: boolean }) {
+    const [placeholder, setPlaceholder] = createSignal("Search");
+
+    const longestCommonPrefix = (a: string, b: string) => {
+        let i = 0;
+        while (i < a.length && i < b.length && a[i] === b[i]) {
+            i++;
+        }
+        return i;
+    };
+
+    onMount(async () => {
+        if (props.no_animation) return;
+        let index = 0;
+        while (true) {
+            let current = untrack(placeholder);
+
+            const lcpLength = longestCommonPrefix(current, PLACEHOLDERS[index]);
+            while (current.length > lcpLength) {
+                setPlaceholder(current.slice(0, -1));
+                current = untrack(placeholder);
+                await new Promise((r) => setTimeout(r, 30));
+            }
+
+            while (current.length < PLACEHOLDERS[index].length) {
+                setPlaceholder(PLACEHOLDERS[index].slice(0, current.length + 1));
+                current = untrack(placeholder);
+                await new Promise((r) => setTimeout(r, 50));
+            }
+
+            await new Promise((r) => setTimeout(r, 2000));
+
+            index = (index + 1) % PLACEHOLDERS.length;
+        }
+    });
+
+    return {
+        placeholder,
+    };
+}
