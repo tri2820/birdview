@@ -43,7 +43,7 @@ export default function ItemRow(props: {
 
     return (
         <div
-            class="p-4 hover:bg-neutral-800 cursor-pointer flex items-start space-x-4 rounded-lg group text-neutral-400 hover:text-white"
+            class="p-4 hover:bg-neutral-800 cursor-pointer flex items-start space-x-4 rounded-2xl group text-neutral-400 hover:text-white"
             onClick={() => {
                 // setIsOpen(false);
                 props.selectItem(props.item);

@@ -19,8 +19,6 @@ export default function SearchBar(props?: { variant?: "md" | "lg", placeholder?:
   });
   const [isOpen, setIsOpen] = createSignal(false);
   const [barRef, setBarRef] = createSignal<HTMLDivElement>();
-
-
   const [query, setQuery] = createSignal("");
 
   let searchTimeout: any = null;
@@ -67,6 +65,7 @@ export default function SearchBar(props?: { variant?: "md" | "lg", placeholder?:
     const open = isOpen();
     if (!open) {
       setState({ type: "idle" });
+      setQuery("");
     }
   });
 

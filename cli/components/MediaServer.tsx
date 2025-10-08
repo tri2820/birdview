@@ -89,6 +89,8 @@ export default function MediaServer() {
       };
     }
 
+    // TODO: Use C-BOR and allow sending multiple frames in one message
+    // Relevant for indexing multiple frames at once (clip)
     // TODO: Selectively send messages based on some criteria
     // e.g. motion, object detected, scene change, etc.
     // Here, send every X seconds as a placeholder
