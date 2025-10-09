@@ -88,17 +88,21 @@ export default function StreamView(props: {
                 <FaSolidChevronRight class="w-4 h-4 text-neutral-400" />
               </button>
             </div>
-            <div class="flex-1 overflow-y-auto">
-              <For each={relevantUpdates()}>{(update) =>
-                <div class="p-4 border-b border-neutral-800 space-y-2 card">
-                  <div class="text-xs text-neutral-400">{new Date(update.at_time).toLocaleString()}</div>
-                  <div class="text-sm">{update.description}</div>
-                </div>
-              }</For>
-            </div>
+            <Show when={relevantUpdates().length === 0} fallback={
+              <div class="flex-1 overflow-y-auto">
+                <For each={relevantUpdates()}>{(update) =>
+                  <div class="p-4 border-b border-neutral-800 space-y-2 card">
+                    <div class="text-xs text-neutral-400">{new Date(update.at_time).toLocaleString()}</div>
+                    <div class="text-sm">{update.description}</div>
+                  </div>
+                }</For>
+              </div>
+            }>
+              <div class="flex-1 flex items-center justify-center text-neutral-400">AI is indexing this stream, waiting for updates.</div>
+            </Show>
           </div>
         </Show>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }

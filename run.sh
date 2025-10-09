@@ -6,7 +6,7 @@ tmux kill-session -t $SESSION 2>/dev/null
 
 
 tmux new-session -d -s $SESSION -n birdview
-tmux send-keys -t $SESSION:birdview "birdview --config birdview.config.json" C-m
+tmux send-keys -t $SESSION:birdview "birdview" C-m
 
 
 # Attach when ready

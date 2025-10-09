@@ -7,6 +7,7 @@ import monacoEditorPlugin from 'vite-plugin-monaco-editor-esm';
 export default defineConfig({
   plugins: [devtools(), solidPlugin(), tailwindcss(), monacoEditorPlugin()],
   server: {
+    host: '0.0.0.0',
     port: process.env.VITE_PORT ? parseInt(process.env.VITE_PORT) : 3000,
     allowedHosts: ['demo.zapdoslabs.com'],
     proxy: {
