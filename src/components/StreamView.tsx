@@ -98,7 +98,14 @@ export default function StreamView(props: {
                 }</For>
               </div>
             }>
-              <div class="flex-1 flex items-center justify-center text-neutral-400">AI is indexing this stream, waiting for updates.</div>
+              <div class="flex-1 flex flex-col items-center justify-center text-neutral-400">
+                <div class="text-sm text-center">
+                  Zapdos AI is indexing this stream
+                </div>
+                <div class="text-xs mt-2 text-center">
+                  Waiting for updates...
+                </div>
+              </div>
             </Show>
           </div>
         </Show>
