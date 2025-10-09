@@ -16,15 +16,15 @@ export type WsHeader =
     | {
         type: "config";
         data: any;
-    } | {
-        type: "search_result";
-        query: string;
-        result: {
-            items: any[];
-        };
-    } | {
-        type: 'get_image_result';
-        path: string;
+    }
+    | {
+        type: "update";
+        data: {
+            id: string;
+            description: string;
+            at_time: string; // ISO string
+            media_id: string;
+        }
     }
 
 

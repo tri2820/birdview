@@ -296,6 +296,11 @@ export function setupWs() {
     if (message.header.type === "codecpar") {
       setGlobalState("streams", message.header.stream_id, "codecpar", message.header.data);
     }
+
+    if (message.header.type === "update") {
+      console.log("Received update:", message.header.data);
+      setUpdates((u) => [...u, (message.header as any).data].slice(-500));
+    }
   });
 
   _socket.addEventListener("close", () => {
@@ -330,3 +335,4 @@ export const setLocalStorage$: typeof _setLocalStorage$ = (...args: any[]) => {
 
   window.localStorage.setItem("localStorage$", JSON.stringify(toStore));
 }
+export const [updates, setUpdates] = createSignal<{ id: string, media_id: string, at_time: string, description: string }[]>([])

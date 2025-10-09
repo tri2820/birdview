@@ -89,18 +89,18 @@ export default function SideBar() {
       label: "Home",
       icon: FiGrid,
     },
-    statistics: {
-      label: "Stats",
-      icon: FiBarChart,
-    },
-    moments: {
-      label: "Moments",
-      icon: FiFilm,
-    },
-    events: {
-      label: "Events",
-      icon: FiActivity,
-    },
+    // statistics: {
+    //   label: "Stats",
+    //   icon: FiBarChart,
+    // },
+    // moments: {
+    //   label: "Moments",
+    //   icon: FiFilm,
+    // },
+    // events: {
+    //   label: "Events",
+    //   icon: FiActivity,
+    // },
   };
 
   return (

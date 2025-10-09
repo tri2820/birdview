@@ -11,58 +11,12 @@ import { logger } from "../utils/logger";
 import { ForwardMessage, forwardStream } from "../utils/startForward";
 import { WsClient } from "../utils/ws_utils";
 import React from "react";
+import { broadcast, frontend } from "../utils/frontendClient";
 
 export default function MediaServer() {
   const [output, setOutput] = useState<string[]>([]);
 
-  let clients: {
-    [key: string]: WsClient;
-  } = {};
-
   const log = logger(setOutput);
-
-  function broadcast(opts: {
-    header: WsHeader;
-    buffer?: ArrayBufferLike;
-    clients: WsClient[];
-  }) {
-    let finalMessage: Buffer | string = createMessage(opts.header, opts.buffer);
-    opts.clients.forEach((client) => {
-      try {
-        if (opts.header.type === "frame") {
-          const subscription = client.viewing_streams[opts.header.stream_id] ?? { priority: 0 };
-          if (client.state[opts.header.stream_id] === undefined) {
-            client.state[opts.header.stream_id] = { lastSentTime: -1 };
-          }
-          const lastSentTime = client.state[opts.header.stream_id].lastSentTime;
-
-          if (subscription.priority == 0) return;
-
-          // Reduced FPS (1 fps)
-          if (subscription.priority == 1) {
-            // Limit to 1 fps per stream per client
-            if (Date.now() - lastSentTime < 1000) return;
-            client.state[opts.header.stream_id].lastSentTime = Date.now();
-            client.ws.send(finalMessage);
-          }
-
-          if (subscription.priority >= 2) {
-            // 2 is FULL FPS
-            client.ws.send(finalMessage);
-            client.state[opts.header.stream_id].lastSentTime = Date.now();
-          }
-        } else {
-          client.ws.send(finalMessage);
-        }
-      } catch (e) {
-        log("Error broadcasting to client: " + e);
-        clients = Object.fromEntries(
-          Object.entries(clients).filter(([, c]) => c.id !== client.id)
-        ); // Remove client on error
-      }
-    });
-  }
-
   const streams: {
     [key: string]: {
       codecpar?: { width: number; height: number };
@@ -127,7 +81,7 @@ export default function MediaServer() {
           broadcast({
             header: { type: "frame", stream_id, id },
             buffer: msg.buffer,
-            clients: Object.values(clients),
+            clients: Object.values(frontend.clients),
           });
         }
 
@@ -142,7 +96,7 @@ export default function MediaServer() {
               stream_id,
               data: msg.data,
             },
-            clients: Object.values(clients),
+            clients: Object.values(frontend.clients),
           });
         }
       }
@@ -165,7 +119,7 @@ export default function MediaServer() {
 
 
 
-      clients[id] = {
+      frontend.clients[id] = {
         id,
         ip,
         ws,
@@ -179,7 +133,7 @@ export default function MediaServer() {
           type: "config",
           data: maskedConfig(),
         },
-        clients: [clients[id]],
+        clients: [frontend.clients[id]],
       });
 
       // Send codecpar of all streams to the new client
@@ -192,7 +146,7 @@ export default function MediaServer() {
               stream_id,
               data: state.codecpar,
             },
-            clients: [clients[id]],
+            clients: [frontend.clients[id]],
           });
         } catch (e) {
           log("Error sending codecpar to new client: " + e);
@@ -204,7 +158,7 @@ export default function MediaServer() {
         const msg = parseMessage(message as any);
         if (msg.header.type === "viewing") {
           const streams = msg.header.streams;
-          clients[id].viewing_streams = streams;
+          frontend.clients[id].viewing_streams = streams;
         }
       });
 
@@ -229,10 +183,7 @@ export default function MediaServer() {
     Object.entries(appConfig.get('streams')).forEach(([id, stream]) => {
       loopStream(id, stream.uri);
     });
-
-
     startMediaServer()
-
   }, []);
 
   useEffect(() => {
@@ -243,7 +194,7 @@ export default function MediaServer() {
           type: "config",
           data: maskedConfig(),
         },
-        clients: Object.values(clients),
+        clients: Object.values(frontend.clients),
       });
     });
 
