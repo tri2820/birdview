@@ -38,13 +38,13 @@ export const connectToBackend = () => {
 
 
     backendWs.onmessage = async (event) => {
-        const parsed = parseMessage(event.data as any)
-        if (parsed.header.type === 'authenticated') {
-            if (parsed.header.auth_token) {
-                console.log("Received auth token from backend:", parsed.header.auth_token);
-                appConfig.set('auth_token', parsed.header.auth_token);
-            }
-        }
+        // const parsed = parseMessage(event.data as any)
+        // if (parsed.header.type === 'authenticated') {
+        //     if (parsed.header.auth_token) {
+        //         console.log("Received auth token from backend:", parsed.header.auth_token);
+        //         appConfig.set('auth_token', parsed.header.auth_token);
+        //     }
+        // }
     };
 
     backendWs.onerror = (err) => {

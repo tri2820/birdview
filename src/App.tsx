@@ -1,26 +1,43 @@
-import { createEffect, Match, onMount, Switch } from "solid-js";
-import { createMessage } from "../message";
+import { batch, createEffect, Match, onMount, Switch, untrack } from "solid-js";
+import EventsMain from "./components/EventsMain";
 import HomeMain from "./components/HomeMain";
 import MultiView from "./components/MultiView";
+import SearchResultMain from "./components/SearchResultMain";
+import SettingsMain from "./components/SettingsMain";
 import SideBar from "./components/SideBar";
 import StreamView from "./components/StreamView";
 import TabLayout from "./components/TabLayout";
 import {
-  latestWsMessage,
-  setGlobalState,
+  localStorage$,
+  setLocalStorage$,
   setupWs,
-  tabId,
-  wsClient
+  tabId
 } from "./utils";
-import EventsMain from "./components/EventsMain";
-import { WsHeader } from "../types";
-import SettingsMain from "./components/SettingsMain";
-import SearchResultMain from "./components/SearchResultMain";
+import { reconcile } from "solid-js/store";
+import { set } from "date-fns";
 
 export default function App() {
   onMount(() => {
     setupWs();
   });
+
+  // Load local storage
+  onMount(() => {
+    const saved = localStorage.getItem("localStorage$")
+    if (!saved) return;
+    try {
+      const s = JSON.parse(saved)
+      batch(() => {
+        for (const k of Object.keys(s)) {
+          setLocalStorage$(k as any, s[k]);
+        }
+      })
+      console.log("Loaded localStorage$", untrack(() => localStorage$));
+    } catch (e) {
+      console.error("Failed to parse localStorage$", e);
+    }
+
+  })
 
   const sidebar = <SideBar />;
 

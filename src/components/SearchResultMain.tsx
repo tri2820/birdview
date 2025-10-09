@@ -1,11 +1,14 @@
-import { createEffect, createSignal, For, Show } from "solid-js"
-import { goBackTabId, setRecentSearches, tabId } from "../utils"
-import SearchBar from "./SearchBar";
-import GoBackButton from "./GoBackButton";
 import { FaSolidArrowLeft } from "solid-icons/fa";
+import { createEffect, createSignal, For, Show } from "solid-js";
 import { MediaUnit } from "../../types";
-import LoadingSkeleton from "./search/LoadingSkeleton";
+import { goBackTabId, setLocalStorage$, tabId } from "../utils";
 import ItemRow from "./search/ItemRow";
+import LoadingSkeleton from "./search/LoadingSkeleton";
+import SearchBar from "./SearchBar";
+import { format } from "date-fns";
+import IslandRow from "./search/IslandRow";
+
+export type Island = (MediaUnit & { _distance: number })[]
 
 // State is updated to include a nullable summary field
 type SearchState = {
@@ -18,7 +21,9 @@ type SearchState = {
 } | {
     type: "result",
     query: string,
-    results: (MediaUnit & { _distance: number })[],
+    // results: (MediaUnit & { _distance: number })[],
+    // clusters: Record<string, { description: string, items: { id: string, media_id: string, at_time: string }[] }>,
+    islands: Island[],
     summary: string | null; // Summary can be null while streaming
 }
 
@@ -39,7 +44,7 @@ export default function SearchResultMain() {
         const query = q();
         if (!query) return;
 
-        setRecentSearches((old) => {
+        setLocalStorage$('recent_searches', (old) => {
             const newSearches = [query, ...old.filter((s) => s !== query)];
             return newSearches.slice(0, 5);
         });
@@ -63,6 +68,7 @@ export default function SearchResultMain() {
 
             while (true) {
                 const { value, done } = await reader.read();
+                console.log({ value, done });
                 if (done) break;
 
                 buffer += decoder.decode(value, { stream: true });
@@ -77,15 +83,15 @@ export default function SearchResultMain() {
                     const data = JSON.parse(line);
 
                     // Check the content of the parsed JSON object
-                    if (data.items) {
-                        // This is the first chunk: set the items and initialize summary to null
-                        setSearchState({
-                            type: "result",
-                            query,
-                            results: data.items,
-                            summary: null,
-                        });
-                    } else if (data.summary) {
+                    if (data.type == "items") {
+                        // // This is the first chunk: set the items and initialize summary to null
+                        // setSearchState({
+                        //     type: "result",
+                        //     query,
+                        //     results: data.items,
+                        //     summary: null,
+                        // });
+                    } else if (data.type == "summary") {
                         // This is the second chunk: update the existing state with the summary
                         setSearchState(prev => {
                             if (prev.type === 'result') {
@@ -93,7 +99,23 @@ export default function SearchResultMain() {
                             }
                             return prev;
                         });
-                    } else if (data.error) {
+                    } else if (data.type == "clustering") {
+                        // setSearchState({
+                        //     type: "result",
+                        //     query,
+                        //     // clusters: data.clusters,
+                        //     summary: null, // Summary will be updated when its chunk arrives
+                        // });
+                    } else if (data.type == "islands") {
+                        setSearchState({
+                            type: "result",
+                            query,
+                            islands: data.islands,
+                            summary: null, // Summary will be updated when its chunk arrives
+                        });
+                    }
+
+                    else if (data.error) {
                         throw new Error(data.error);
                     }
                 }
@@ -113,7 +135,7 @@ export default function SearchResultMain() {
     // Its logic already handles the progressive rendering correctly.
     return <div class="h-screen flex flex-col border-l border-neutral-800 bg-neutral-900 overflow-hidden ">
         <div class="overflow-auto h-full flex flex-col">
-            <div class="px-4 py-8 mx-auto w-[42vw] flex flex-col ">
+            <div class="px-4 py-8 mx-auto w-full xl:w-[50vw] flex flex-col ">
                 <div class="flex items-center space-x-4 mb-4 flex-none">
                     <button onClick={goBackTabId} class="btn-tertiary">
                         <FaSolidArrowLeft class="w-4 h-4" />
@@ -121,8 +143,8 @@ export default function SearchResultMain() {
                     </button>
                 </div>
 
-                <div data-scheme="lighter" class="group relative h-20 flex-none">
-                    <SearchBar variant="lg" placeholder={q} />
+                <div data-scheme="lighter" class="group relative h-24 flex-none">
+                    <SearchBar variant="xl" placeholder={q} />
                 </div>
 
                 <div class="text-neutral-400 flex-1 ">
@@ -133,36 +155,40 @@ export default function SearchResultMain() {
                         <div class="text-red-500">Error occurred while searching. Please try again.</div>
                     </Show>
                     <Show when={result()} >
-                        {s => (
-                            <div>
+                        {s => {
+                            const rows = () => s().islands
+                            return <div>
                                 {/* Summary Section: Shows skeleton while summary is loading */}
                                 <div class="mb-6">
                                     <Show when={s().summary} fallback={<LoadingSkeleton />}>
-                                        <div class="p-4 bg-neutral-800 rounded-2xl animate-fade-in">
+                                        <div class="p-4 bg-neutral-800 rounded-3xl animate-fade-in">
                                             <h2 class="font-bold text-lg mb-2 text-neutral-200">Summary</h2>
                                             <p class="text-neutral-300">{s().summary}</p>
                                         </div>
                                     </Show>
                                 </div>
 
-                                {/* Results Section: Shows items as soon as they arrive */}
-                                <Show when={s().results.length > 0} fallback={
+
+
+
+                                <Show when={rows().length > 0} fallback={
                                     <div class="py-2">No results found for "{s().query}".</div>
                                 }>
-                                    <div>
-                                        <For each={s().results}>
-                                            {r => <ItemRow
-                                                item={r}
-                                                selectItem={() => console.log("Select item", r)}
-                                            />}
+                                    <div class="space-y-4">
+                                        <For each={rows()}>
+
+                                            {
+                                                island => <IslandRow island={island} selectItem={() => { }} />
+                                            }
+
                                         </For>
                                     </div>
                                 </Show>
                             </div>
-                        )}
+                        }}
                     </Show>
-                </div>
-            </div>
-        </div>
-    </div>
+                </div >
+            </div >
+        </div >
+    </div >
 }

@@ -315,4 +315,18 @@ export const shortenText = (text: string, maxLength = 100) => {
 };
 
 
-export const [recentSearches, setRecentSearches] = createSignal<string[]>([]);
+export const [localStorage$, _setLocalStorage$] = createStore<{
+  recent_searches: string[]
+}>({
+  recent_searches: []
+});
+
+export const setLocalStorage$: typeof _setLocalStorage$ = (...args: any[]) => {
+  // @ts-ignore
+  _setLocalStorage$(...args);
+
+  // Persist to localStorage
+  const toStore = { ...localStorage$ };
+
+  window.localStorage.setItem("localStorage$", JSON.stringify(toStore));
+}

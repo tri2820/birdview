@@ -7,7 +7,7 @@ import { Accessor, createEffect, For, onMount, Show } from "solid-js";
 import SearchBar from "./SearchBar";
 import useWsVideo from "./useWsVideo";
 import useVideoPlayer from "./useVideoPlayer";
-import { appConfig, recentSearches, setTabId, wsClient } from "../utils";
+import { appConfig, localStorage$, setTabId, wsClient } from "../utils";
 import { createMessage } from "../../message";
 
 function StreamItem(props: { id: Accessor<string> }) {
@@ -54,15 +54,15 @@ export default function HomeMain() {
         <SearchBar variant="lg" />
       </div>
 
-      <Show when={recentSearches().length > 0}>
+      <Show when={localStorage$.recent_searches.length > 0}>
         <div class="text-left w-[40vw] mt-12 space-y-2 relative z-30">
           <div class="flex items-center space-x-2 text-neutral-300">
             <FaSolidClockRotateLeft class="w-4 h-4" />
-            <div class="font-bold">Recent Searches</div>
+            <div class="font-bold">Recent searches</div>
           </div>
 
           <div>
-            <For each={recentSearches()}>
+            <For each={localStorage$.recent_searches}>
               {(item) => {
                 return (
                   <div
